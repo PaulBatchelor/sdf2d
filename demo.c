@@ -122,6 +122,16 @@ static float smoothstep(float e0, float e1, float x)
     return t * t * (3.0 - 2.0 * t);
 }
 
+static float feather(float d, float amt)
+{
+    float alpha;
+    alpha = 0;
+    alpha = sdf_sign(d) > 0;
+    alpha += smoothstep(amt, 0.0, fabs(d));
+    alpha = clampf(alpha, 0, 1);
+    return alpha;
+}
+
 static void d_heart(struct vec3 *fragColor,
                     struct vec2 fragCoord,
                     image_data *id)
@@ -138,14 +148,7 @@ static void d_heart(struct vec3 *fragColor,
 
     d = -sdf_heart(p);
 
-    col = svec3(1., 1., 1.);
-    col = svec3_subtract(col,
-                         svec3_multiply_f(svec3(0., 0.25, 0.25),
-                                          sdf_sign(d)));
-    alpha = 0;
-    alpha = sdf_sign(d) > 0;
-    alpha += smoothstep(0.01, 0.0, fabs(d));
-    alpha = clampf(alpha, 0, 1);
+    alpha = feather(d, 0.01);
 
     fg = (struct vec3 *)id->ud;
     col = svec3_lerp(*fragColor, *fg, alpha);
@@ -235,7 +238,6 @@ int main(int argc, char *argv[])
     ctx.buf = buf;
 
     fill(&ctx, svec3(1., 1.0, 1.0));
-
     heart(&ctx, 0, 0, width, height, rgb2color(255, 192, 203));
 
     write_ppm(buf, res, "demo.ppm");
