@@ -13,4 +13,5 @@ float sdf_box(struct vec2 p, struct vec2 b);
 float sdf_rhombus(struct vec2 p, struct vec2 b);
 float sdf_equilateral_triangle(struct vec2 p);
 float sdf_pentagon(struct vec2 p, float r);
+float sdf_hexagon(struct vec2 p, float r);
 #endif

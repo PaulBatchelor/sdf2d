@@ -192,6 +192,36 @@ static void write_ppm(struct vec3 *buf,
     fclose(fp);
 }
 
+void draw_gridlines(struct canvas *ctx)
+{
+    int x, y;
+    int w, h;
+    int size;
+
+    w = ctx->res.x;
+    h = ctx->res.y;
+
+    size = w / 4;
+
+    for (y = 0; y < h; y += size) {
+        for (x = 0; x < w; x++) {
+            int pos;
+            pos = y*w + x;
+            ctx->buf[pos] = svec3_zero();
+        }
+    }
+
+    for (x = 0; x < w; x += size) {
+        for (y = 0; y < h; y++) {
+            int pos;
+            pos = y*w + x;
+            ctx->buf[pos] = svec3_zero();
+        }
+    }
+
+}
+
+
 static void d_heart(struct vec3 *fragColor,
                     struct vec2 fragCoord,
                     image_data *id)
@@ -472,33 +502,39 @@ void pentagon(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_pentagon, &clr);
 }
 
-void draw_gridlines(struct canvas *ctx)
+static void d_hexagon(struct vec3 *fragColor,
+                       struct vec2 st,
+                       image_data *id)
 {
-    int x, y;
-    int w, h;
-    int size;
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    struct vec3 *fg;
+    float alpha;
+    struct vec2 res;
 
-    w = ctx->res.x;
-    h = ctx->res.y;
+    res = svec2(id->region->z, id->region->w);
 
-    size = w / 4;
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_hexagon(p, 0.8);
 
-    for (y = 0; y < h; y += size) {
-        for (x = 0; x < w; x++) {
-            int pos;
-            pos = y*w + x;
-            ctx->buf[pos] = svec3_zero();
-        }
-    }
+    alpha = feather(d, FEATHER_AMT);
 
-    for (x = 0; x < w; x += size) {
-        for (y = 0; y < h; y++) {
-            int pos;
-            pos = y*w + x;
-            ctx->buf[pos] = svec3_zero();
-        }
-    }
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
+    *fragColor = col;
+}
 
+void hexagon(struct canvas *ctx,
+              float cx, float cy, float r,
+              struct vec3 clr)
+{
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = r * 2;
+    h = w;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_hexagon, &clr);
 }
 
 int main(int argc, char *argv[])
@@ -557,10 +593,17 @@ int main(int argc, char *argv[])
                         sz_scaled * 0.7, pink);
 
     pentagon(&ctx,
-            2*sz + sz*0.5,
+             2*sz + sz*0.5,
+             1*sz + sz*0.5,
+             sz_scaled*0.5,
+             pink);
+
+    hexagon(&ctx,
+            3*sz + sz*0.5,
             1*sz + sz*0.5,
             sz_scaled*0.5,
             pink);
+
 #ifdef DRAW_GRIDLINES
     draw_gridlines(&ctx);
 #endif
