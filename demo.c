@@ -129,7 +129,7 @@ static void d_heart(struct vec3 *fragColor,
     struct vec2 p;
     float d;
     struct vec3 col;
-    struct vec3 white;
+    struct vec3 *fg;
     float alpha;
     struct vec2 res;
 
@@ -147,8 +147,8 @@ static void d_heart(struct vec3 *fragColor,
     alpha += smoothstep(0.01, 0.0, fabs(d));
     alpha = clampf(alpha, 0, 1);
 
-    white = svec3(1., 1., 1.);
-    col = svec3_lerp(*fragColor, white, alpha);
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
     *fragColor = col;
 }
 
@@ -157,7 +157,13 @@ void heart(struct canvas *ctx,
            float w, float h,
            struct vec3 clr)
 {
-    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_heart, NULL);
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_heart, &clr);
+}
+
+struct vec3 rgb2color(int r, int g, int b)
+{
+    float scale = 1.0 / 255;
+    return svec3(r * scale, g * scale, b * scale);
 }
 
 static int mkcolor(float x)
@@ -228,9 +234,9 @@ int main(int argc, char *argv[])
     ctx.res = res;
     ctx.buf = buf;
 
-    fill(&ctx, svec3(0., 0.25, 0.25));
+    fill(&ctx, svec3(1., 1.0, 1.0));
 
-    heart(&ctx, 0, 0, width, height, svec3(1, 1, 1));
+    heart(&ctx, 0, 0, width, height, rgb2color(255, 192, 203));
 
     write_ppm(buf, res, "demo.ppm");
 
