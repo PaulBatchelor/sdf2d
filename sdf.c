@@ -112,3 +112,18 @@ float sdf_rounded_box(struct vec2 pos, struct vec2 b, struct vec4 r)
 
     return out;
 }
+
+float sdf_box(struct vec2 p, struct vec2 b)
+{
+    struct vec2 d;
+    float out;
+
+    /* vec2 d = abs(p)-b; */
+    d = svec2_abs(p);
+    d = svec2_subtract(d, b);
+
+    /* return length(max(d,0.0)) + min(max(d.x,d.y),0.0); */
+    out = svec2_length(svec2_max(d, svec2_zero()));
+    out += sdf_min(sdf_max(d.x, d.y), 0.0);
+    return out;
+}

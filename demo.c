@@ -125,6 +125,17 @@ static float smoothstep(float e0, float e1, float x)
     return t * t * (3.0 - 2.0 * t);
 }
 
+struct vec3 rgb2color(int r, int g, int b)
+{
+    float scale = 1.0 / 255;
+    return svec3(r * scale, g * scale, b * scale);
+}
+
+static int mkcolor(float x)
+{
+    return floor(x * 255);
+}
+
 static float feather(float d, float amt)
 {
     float alpha;
@@ -133,6 +144,52 @@ static float feather(float d, float amt)
     alpha += smoothstep(amt, 0.0, fabs(d));
     alpha = clampf(alpha, 0, 1);
     return alpha;
+}
+
+static void d_fill(struct vec3 *fragColor,
+                   struct vec2 fragCoord,
+                   image_data *id)
+{
+
+    struct vec3 *col;
+
+    col = id->ud;
+    *fragColor = *col;
+}
+
+static void fill(struct canvas *ctx, struct vec3 clr)
+{
+    draw(ctx->buf, ctx->res, 
+         svec4(0, 0, ctx->res.x, ctx->res.y), 
+         d_fill, &clr);
+}
+
+static void write_ppm(struct vec3 *buf,
+                      struct vec2 res,
+                      const char *filename)
+{
+    int x, y;
+    FILE *fp;
+    unsigned char *ibuf;
+
+    fp = fopen(filename, "w");
+    fprintf(fp, "P6\n%d %d\n%d\n", (int)res.x, (int)res.y, 255);
+
+    ibuf = malloc(3 * res.y * res.x * sizeof(unsigned char));
+    for (y = 0; y < res.y; y++) {
+        for (x = 0; x < res.x; x++) {
+            int pos;
+            pos = y * res.x + x;
+
+            ibuf[3*pos] = mkcolor(buf[pos].x);
+            ibuf[3*pos + 1] = mkcolor(buf[pos].y);
+            ibuf[3*pos + 2] = mkcolor(buf[pos].z);
+        }
+    }
+
+    fwrite(ibuf, 3 * res.y * res.x * sizeof(unsigned char), 1, fp);
+    free(ibuf);
+    fclose(fp);
 }
 
 static void d_heart(struct vec3 *fragColor,
@@ -230,6 +287,47 @@ static void d_rounded_box(struct vec3 *fragColor,
     *fragColor = col;
 }
 
+struct box_data {
+    struct vec2 b;
+    struct vec3 clr;
+};
+
+static void d_box(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct box_data *bb;
+
+    res = svec2(id->region->z, id->region->w);
+    bb = (struct box_data *)id->ud;
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_box(p, bb->b);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, bb->clr, alpha);
+    *fragColor = col;
+}
+
+void box(struct canvas *ctx,
+         float x, float y, float w, float h,
+         struct vec3 clr)
+{
+    struct box_data bb;
+    /* setting to be <1 yields better roundedness. probably
+     * has to do with truncation? 
+     */
+    bb.b = svec2(0.9, 0.9);
+    bb.clr = clr;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_box, &bb);
+}
+
 void rounded_box(struct canvas *ctx,
                  float x, float y, float w, float h, float r,
                  struct vec3 clr)
@@ -242,63 +340,6 @@ void rounded_box(struct canvas *ctx,
     rb.clr = clr;
     rb.r = svec4(r, r, r, r);
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rounded_box, &rb);
-}
-
-struct vec3 rgb2color(int r, int g, int b)
-{
-    float scale = 1.0 / 255;
-    return svec3(r * scale, g * scale, b * scale);
-}
-
-static int mkcolor(float x)
-{
-    return floor(x * 255);
-}
-
-static void write_ppm(struct vec3 *buf,
-                      struct vec2 res,
-                      const char *filename)
-{
-    int x, y;
-    FILE *fp;
-    unsigned char *ibuf;
-
-    fp = fopen(filename, "w");
-    fprintf(fp, "P6\n%d %d\n%d\n", (int)res.x, (int)res.y, 255);
-
-    ibuf = malloc(3 * res.y * res.x * sizeof(unsigned char));
-    for (y = 0; y < res.y; y++) {
-        for (x = 0; x < res.x; x++) {
-            int pos;
-            pos = y * res.x + x;
-
-            ibuf[3*pos] = mkcolor(buf[pos].x);
-            ibuf[3*pos + 1] = mkcolor(buf[pos].y);
-            ibuf[3*pos + 2] = mkcolor(buf[pos].z);
-        }
-    }
-
-    fwrite(ibuf, 3 * res.y * res.x * sizeof(unsigned char), 1, fp);
-    free(ibuf);
-    fclose(fp);
-}
-
-static void d_fill(struct vec3 *fragColor,
-                   struct vec2 fragCoord,
-                   image_data *id)
-{
-
-    struct vec3 *col;
-
-    col = id->ud;
-    *fragColor = *col;
-}
-
-static void fill(struct canvas *ctx, struct vec3 clr)
-{
-    draw(ctx->buf, ctx->res, 
-         svec4(0, 0, ctx->res.x, ctx->res.y), 
-         d_fill, &clr);
 }
 
 int main(int argc, char *argv[])
@@ -338,6 +379,9 @@ int main(int argc, char *argv[])
     rounded_box(&ctx, 
                 2*sz + sz*0.125, 
                 0 + sz * 0.125, sz*0.75, sz*0.75, 0.5, pink);
+    box(&ctx, 
+        3*sz + sz*0.125, 
+        0 + sz * 0.125, sz*0.75, sz*0.75, pink);
 
     write_ppm(buf, res, "demo.ppm");
 
