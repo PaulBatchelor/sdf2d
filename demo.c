@@ -701,6 +701,41 @@ void rounded_x(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rounded_x, &rx);
 }
 
+static void d_vesica(struct vec3 *fragColor,
+                      struct vec2 st,
+                      image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    struct vec3 *fg;
+    float alpha;
+    struct vec2 res;
+
+    res = svec2(id->region->z, id->region->w);
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_vesica(p, 0.9, 0.5);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
+    *fragColor = col;
+}
+
+void vesica(struct canvas *ctx,
+             float cx, float cy, float r,
+             struct vec3 clr)
+{
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = r * 2;
+    h = w;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_vesica, &clr);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -817,6 +852,13 @@ int main(int argc, char *argv[])
               sz_scaled*0.5,
               0.1,
               rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+
+    vesica(&ctx,
+           0*sz + sz*0.5,
+           3*sz + sz*0.5,
+           sz_scaled*0.5,
+           rainbow[clrpos]);
     clrpos = (clrpos + 1) % 5;
 
 #ifdef DRAW_GRIDLINES

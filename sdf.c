@@ -340,3 +340,24 @@ float sdf_rounded_x(struct vec2 p, float w, float r)
 
     return svec2_length(p) - r;
 }
+
+float sdf_vesica(struct vec2 p, float r, float d)
+{
+    float b;
+    float out;
+
+    out = 0;
+
+    p = svec2_abs(p);
+
+    b = sqrt(r*r - d*d);
+
+    if (((p.y - b) * d) > p.x*b) {
+        p = svec2_subtract(p, svec2(0.0, b));
+        out = svec2_length(p);
+    } else {
+        p = svec2_subtract(p, svec2(-d, 0.0));
+        out = svec2_length(p) - r;
+    }
+    return out;
+}
