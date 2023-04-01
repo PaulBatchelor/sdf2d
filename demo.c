@@ -874,7 +874,7 @@ void moon(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_moon, &mn);
 }
 
-#define NSPRINKLES 500
+#define NSPRINKLES 700
 
 void sprinkles(struct canvas *ctx, struct vec3 *rainbow)
 {
@@ -893,16 +893,24 @@ void sprinkles(struct canvas *ctx, struct vec3 *rainbow)
         float rad, angle;
         float xpos, ypos;
         int shape;
+        float slope;
 
         rad = (float)rand() / RAND_MAX;
+
+        /* exponential mapping */
+        slope = -3;
+        rad = (1 - exp(rad*slope)) / (1 - exp(slope)); 
+
         angle = ((float)rand() / RAND_MAX) * 2 * M_PI;
 
         shape = 0;
 
         shape = (8 * ((float)rand() / RAND_MAX));
 
-        xpos = 0.5*(1 + rad*cos(angle)) * w;
-        ypos = 0.5*(1 + rad*sin(angle)) * h;
+        xpos = 0.5*(1 + 0.75*rad*cos(angle)) * w;
+        ypos = 0.5*(1 + 0.75*rad*sin(angle)) * h;
+
+        sz = 5 + 8 * (1 - rad);
 
         switch (shape) {
             case 0:
