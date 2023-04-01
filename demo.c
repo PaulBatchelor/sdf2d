@@ -70,7 +70,7 @@ void *draw_thread(void *arg)
             struct vec3 *c;
             pos = y*stride + x;
 
-            if (pos > maxpos) continue;
+            if (pos > maxpos || pos < 0) continue;
             c = &buf[pos];
             td->draw(c, svec2(x - reg->x, y - reg->y), data);
         }
@@ -874,6 +874,90 @@ void moon(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_moon, &mn);
 }
 
+#define NSPRINKLES 500
+
+void sprinkles(struct canvas *ctx, struct vec3 *rainbow)
+{
+    int i;
+    float sz;
+    int clrpos;
+    float w, h;
+
+    fill(ctx, svec3(1.0, 1.0, 1.0));
+
+    clrpos = 0;
+    sz = 10;
+    w = ctx->res.x;
+    h = ctx->res.y;
+    for (i = 0; i < NSPRINKLES; i++) {
+        float rad, angle;
+        float xpos, ypos;
+        int shape;
+
+        rad = (float)rand() / RAND_MAX;
+        angle = ((float)rand() / RAND_MAX) * 2 * M_PI;
+
+        shape = 0;
+
+        shape = (8 * ((float)rand() / RAND_MAX));
+
+        xpos = 0.5*(1 + rad*cos(angle)) * w;
+        ypos = 0.5*(1 + rad*sin(angle)) * h;
+
+        switch (shape) {
+            case 0:
+                circle(ctx, xpos, ypos, sz, rainbow[clrpos]);
+                break;
+            case 1:
+                heart(ctx, xpos, ypos, sz*2, sz*2, rainbow[clrpos]);
+                break;
+            case 2:
+                star5(ctx,
+                      xpos,
+                      ypos,
+                      sz,
+                      0.5,
+                      rainbow[clrpos]);
+                break;
+            case 3:
+                moon(ctx,
+                     xpos,
+                     ypos,
+                     sz,
+                     0.5, 0.9, 0.8,
+                     rainbow[clrpos]);
+                break;
+            case 4:
+                egg(ctx,
+                    xpos,
+                    ypos,
+                    sz,
+                    rainbow[clrpos]);
+                break;
+            case 5:
+                triangle_equilateral(ctx,
+                                     xpos, ypos,
+                                     sz, rainbow[clrpos]);
+                break;
+            case 6:
+                rhombus(ctx,
+                        xpos,
+                        ypos, sz, rainbow[clrpos]);
+                break;
+            case 7:
+                rounded_box(ctx, 
+                            xpos, 
+                            ypos, sz, sz, 0.5, rainbow[clrpos]);
+                break;
+            default:
+                break;
+        }
+        clrpos = (clrpos + 1) % 5;
+    }
+
+    write_ppm(ctx->buf, ctx->res, "sprinkles.ppm");
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -1027,6 +1111,8 @@ int main(int argc, char *argv[])
 #endif
 
     write_ppm(buf, res, "demo.ppm");
+
+    sprinkles(&ctx, rainbow);
 
     free(buf);
     return 0;
