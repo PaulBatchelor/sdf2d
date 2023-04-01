@@ -736,6 +736,43 @@ void vesica(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_vesica, &clr);
 }
 
+static void d_egg(struct vec3 *fragColor,
+                      struct vec2 st,
+                      image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    struct vec3 *fg;
+    float alpha;
+    struct vec2 res;
+
+    res = svec2(id->region->z, id->region->w);
+
+    st.y = res.y - st.y;
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    p = svec2_add(p, svec2(0, 0.2));
+    d = -sdf_egg(p, 0.6, 0.3);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
+    *fragColor = col;
+}
+
+void egg(struct canvas *ctx,
+             float cx, float cy, float r,
+             struct vec3 clr)
+{
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = r * 2;
+    h = w;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_egg, &clr);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -859,6 +896,13 @@ int main(int argc, char *argv[])
            3*sz + sz*0.5,
            sz_scaled*0.5,
            rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+
+    egg(&ctx,
+        1*sz + sz*0.5,
+        3*sz + sz*0.5,
+        sz_scaled*0.5,
+        rainbow[clrpos]);
     clrpos = (clrpos + 1) % 5;
 
 #ifdef DRAW_GRIDLINES

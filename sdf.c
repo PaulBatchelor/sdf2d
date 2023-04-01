@@ -361,3 +361,32 @@ float sdf_vesica(struct vec2 p, float r, float d)
     }
     return out;
 }
+
+float sdf_egg(struct vec2 p, float ra, float rb)
+{
+    const float k = sqrt(3.0);
+    float r;
+    float out;
+
+    out = 0;
+
+    p.x = fabs(p.x);
+
+    r = ra - rb;
+/*
+    return ((p.y<0.0)       ? length(vec2(p.x,  p.y    )) - r :
+            (k*(p.x+r)<p.y) ? length(vec2(p.x,  p.y-k*r)) :
+                              length(vec2(p.x+r,p.y    )) - 2.0*r) - rb;
+*/
+    if (p.y < 0.0) {
+        out = svec2_length(svec2(p.x, p.y)) - r;
+    } else {
+        if (k * (p.x + r) < p.y) {
+            out = svec2_length(svec2(p.x, p.y-k*r));
+        } else {
+            out = svec2_length(svec2(p.x + r, p.y)) - 2.0*r;
+        }
+    }
+
+    return out - rb;
+}
