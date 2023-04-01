@@ -331,3 +331,12 @@ float sdf_star5(struct vec2 p, float r, float rf)
     tmp = svec2_subtract(p, tmp);
     return svec2_length(tmp) * sdf_sign(p.y*ba.x-p.x*ba.y);
 }
+
+float sdf_rounded_x(struct vec2 p, float w, float r)
+{
+    p = svec2_abs(p);
+
+    p = svec2_subtract_f(p, sdf_min(p.x + p.y,w) * 0.5);
+
+    return svec2_length(p) - r;
+}

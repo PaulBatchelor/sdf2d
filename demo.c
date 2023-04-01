@@ -654,6 +654,53 @@ void star5(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_star5, &star);
 }
 
+struct rounded_x_data {
+    struct vec3 clr;
+    float r;
+};
+
+static void d_rounded_x(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct rounded_x_data *rx;
+
+    res = svec2(id->region->z, id->region->w);
+    rx = (struct rounded_x_data *)id->ud;
+
+    /* flip so the start is pointing upwards */
+    st.y = res.y - st.y;
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_rounded_x(p, 0.9, rx->r);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, rx->clr, alpha);
+    *fragColor = col;
+}
+
+void rounded_x(struct canvas *ctx,
+           float cx, float cy, float r, float thickness,
+           struct vec3 clr)
+{
+    struct rounded_x_data rx;
+    float x, y, w, h;
+
+    w = 2.0 * r;
+    h = w;
+    x = cx - r;
+    y = cy - r;
+
+    rx.clr = clr;
+    rx.r = thickness;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rounded_x, &rx);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -661,11 +708,12 @@ int main(int argc, char *argv[])
     struct vec2 res;
     struct canvas ctx;
     int sz;
-    struct vec3 pink;
     float cscale, padding;
     int sz_scaled;
+    struct vec3 rainbow[5];
+    int clrpos;
 
-    /* TODO: rainbow colors:
+    /* rainbow colors:
      * Red: 255, 179, 186
      * Orange: 255, 223, 186
      * Yellow: 255, 255, 186
@@ -673,8 +721,20 @@ int main(int argc, char *argv[])
      * Blue: 186, 225, 255
      */
 
+    /* red */
+    rainbow[0] = rgb2color(255, 179, 186);
+    /* orange */
+    rainbow[1] = rgb2color(255, 223, 186);
+    /* yellow */
+    rainbow[2] = rgb2color(255, 255, 186);
+    /* green */
+    rainbow[3] = rgb2color(186, 255, 201);
+    /* blue */
+    rainbow[4] = rgb2color(186, 255, 255);
+
     width = 512;
     height = 512;
+    clrpos = 0;
 
     sz = width / 4;
     cscale = 0.75;
@@ -689,56 +749,75 @@ int main(int argc, char *argv[])
     ctx.res = res;
     ctx.buf = buf;
 
-    pink = rgb2color(255, 192, 203);
     fill(&ctx, svec3(1., 1.0, 1.0));
-    heart(&ctx, 0, 0, sz, sz, pink);
-    circle(&ctx, 1*sz + sz*0.5, sz*0.5, (sz*0.5)*0.75, pink);
+    heart(&ctx, 0, 0, sz, sz, rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+    circle(&ctx, 1*sz + sz*0.5, sz*0.5, (sz*0.5)*0.75, rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
     rounded_box(&ctx, 
                 2*sz + sz*0.125, 
-                0 + sz * 0.125, sz*0.75, sz*0.75, 0.5, pink);
+                0 + sz * 0.125, sz*0.75, sz*0.75, 0.5, rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+
     box(&ctx, 
         3*sz + padding, 
-        0 + padding, sz*0.75, sz*0.75, pink);
+        0 + padding, sz*0.75, sz*0.75, rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     rhombus(&ctx, 
         0*sz + sz*0.5, 
-        1*sz + sz*0.5, sz_scaled*0.5, pink);
+        1*sz + sz*0.5, sz_scaled*0.5, rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     triangle_equilateral(&ctx, 
                          1*sz + sz*0.5,
                          1*sz + sz*0.5,
-                         sz_scaled * 0.7, pink);
+                         sz_scaled * 0.7, rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     pentagon(&ctx,
              2*sz + sz*0.5,
              1*sz + sz*0.5,
              sz_scaled*0.5,
-             pink);
+             rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     hexagon(&ctx,
             3*sz + sz*0.5,
             1*sz + sz*0.5,
             sz_scaled*0.5,
-            pink);
+            rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     octogon(&ctx,
             0*sz + sz*0.5,
             2*sz + sz*0.5,
             sz_scaled*0.5,
-            pink);
+            rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     hexagram(&ctx,
              1*sz + sz*0.5,
              2*sz + sz*0.5,
              sz_scaled*0.5,
-             pink);
+             rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
     star5(&ctx,
-             2*sz + sz*0.5,
-             2*sz + sz*0.5,
-             sz_scaled*0.5,
-             0.5,
-             pink);
+          2*sz + sz*0.5,
+          2*sz + sz*0.5,
+          sz_scaled*0.5,
+          0.5,
+          rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+
+    rounded_x(&ctx,
+              3*sz + sz*0.5,
+              2*sz + sz*0.5,
+              sz_scaled*0.5,
+              0.1,
+              rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
 
 #ifdef DRAW_GRIDLINES
     draw_gridlines(&ctx);
