@@ -823,6 +823,57 @@ void ellipse(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_ellipse, &el);
 }
 
+struct moon_data {
+    struct vec3 clr;
+    float d;
+    float ra;
+    float rb;
+};
+
+static void d_moon(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct moon_data *moon;
+
+    res = svec2(id->region->z, id->region->w);
+    moon = (struct moon_data *)id->ud;
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_moon(p, moon->d, moon->ra, moon->rb);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, moon->clr, alpha);
+    *fragColor = col;
+}
+
+void moon(struct canvas *ctx,
+           float cx, float cy, float r,
+           float d, float ra, float rb,
+           struct vec3 clr)
+{
+    struct moon_data mn;
+    float x, y, w, h;
+
+
+    w = 2.0 * r;
+    h = w;
+    x = cx - r;
+    y = cy - r;
+
+    mn.clr = clr;
+    mn.ra = ra;
+    mn.rb = rb;
+    mn.d = d;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_moon, &mn);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -961,6 +1012,14 @@ int main(int argc, char *argv[])
             sz_scaled*0.5,
             0.9, 0.3,
             rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+
+    moon(&ctx,
+         3*sz + sz*0.5,
+         3*sz + sz*0.5,
+         sz_scaled*0.5,
+         0.5, 0.9, 0.8,
+         rainbow[clrpos]);
     clrpos = (clrpos + 1) % 5;
 
 #ifdef DRAW_GRIDLINES

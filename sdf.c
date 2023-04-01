@@ -454,3 +454,26 @@ float sdf_ellipse(struct vec2 p, struct vec2 ab)
     r = svec2_multiply(ab, svec2(co, sqrt(1.0-co*co)));
     return svec2_length(svec2_subtract(r, p)) * sdf_sign(p.y - r.y);
 }
+
+float sdf_moon(struct vec2 p, float d, float ra, float rb)
+{
+    float a;
+    float b;
+    float out;
+
+    p.y = fabs(p.y);
+
+    a = (ra*ra - rb*rb + d*d)/(2.0 * d);
+    b = sqrt(sdf_max(ra*ra - a*a, 0.0));
+
+    out = 0;
+
+    if (d*(p.x*b - p.y*a) > d*d*sdf_max(b-p.y, 0.0)) {
+        out = svec2_length(svec2_subtract(p, svec2(a, b)));
+    } else {
+        out = sdf_max(svec2_length(p) - ra,
+                      -(svec2_length(svec2_subtract(p, svec2(d, 0))) - rb));
+    }
+
+    return out;
+}
