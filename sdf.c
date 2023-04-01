@@ -168,3 +168,35 @@ float sdf_equilateral_triangle(struct vec2 p)
 
     return -svec2_length(p) * sdf_sign(p.y);
 }
+
+float sdf_pentagon(struct vec2 p, float r)
+{
+    const struct vec3 k = svec3(0.809016994,0.587785252,0.726542528);
+    float tmpf;
+    struct vec2 tmp;
+
+    p.x = fabs(p.x);
+    /* p -= 2.0*min(dot(vec2(-k.x,k.y),p),0.0)*vec2(-k.x,k.y); */
+
+    tmpf = svec2_dot(svec2(-k.x, k.y), p);
+    tmpf = 2.0*sdf_min(tmpf, 0.0);
+    tmp = svec2(-k.x, k.y);
+    tmp = svec2_multiply_f(tmp, tmpf);
+    p = svec2_subtract(p, tmp);
+
+    /* p -= 2.0*min(dot(vec2(+k.x,k.y),p),0.0)*vec2(+k.x,k.y);  */
+    tmpf = svec2_dot(svec2(+k.x, k.y), p);
+    tmpf = 2.0*sdf_min(tmpf, 0.0);
+    tmp = svec2(+k.x, k.y);
+    tmp = svec2_multiply_f(tmp, tmpf);
+    p = svec2_subtract(p, tmp);
+
+    /* p -= vec2(clamp(p.x,-r*k.z,r*k.z),r); */
+
+    tmp = svec2(clampf(p.x, -r*k.z, r*k.z), r);
+    p = svec2_subtract(p, tmp);
+
+    /* return length(p)*sign(p.y); */
+
+    return svec2_length(p) * sdf_sign(p.y);
+}

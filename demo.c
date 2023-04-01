@@ -437,6 +437,41 @@ void tiangle_equilateral(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_tiangle_equilateral, &tri);
 }
 
+static void d_pentagon(struct vec3 *fragColor,
+                       struct vec2 st,
+                       image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    struct vec3 *fg;
+    float alpha;
+    struct vec2 res;
+
+    res = svec2(id->region->z, id->region->w);
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_pentagon(p, 0.8);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
+    *fragColor = col;
+}
+
+void pentagon(struct canvas *ctx,
+              float cx, float cy, float r,
+              struct vec3 clr)
+{
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = r * 2;
+    h = w;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_pentagon, &clr);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -491,6 +526,12 @@ int main(int argc, char *argv[])
                         1*sz + sz*0.5, 
                         1*sz + sz*0.5,
                         sz_scaled * 0.7, pink);
+
+    pentagon(&ctx,
+            2*sz + sz*0.5,
+            1*sz + sz*0.5,
+            sz_scaled*0.5,
+            pink);
 
     write_ppm(buf, res, "demo.ppm");
 
