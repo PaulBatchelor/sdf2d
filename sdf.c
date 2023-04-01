@@ -224,3 +224,36 @@ float sdf_hexagon(struct vec2 p, float r)
 
     return svec2_length(p) * sdf_sign(p.y);
 }
+
+float sdf_octogon(struct vec2 p, float r)
+{
+    const struct vec3 k = svec3(-0.9238795325, 0.3826834323, 0.4142135623 );
+    float tmpf;
+    struct vec2 tmp;
+
+    p = svec2_abs(p);
+
+    /* p -= 2.0*min(dot(vec2(+k.x,k.y),p),0.0)*vec2(+k.x,k.y);  */
+    tmpf = svec2_dot(svec2(k.x, k.y), p);
+    tmpf = 2.0*sdf_min(tmpf, 0.0);
+    tmp = svec2(+k.x, k.y);
+    tmp = svec2_multiply_f(tmp, tmpf);
+    p = svec2_subtract(p, tmp);
+
+    /* p -= 2.0*min(dot(vec2(-k.x,k.y),p),0.0)*vec2(-k.x,k.y); */
+    tmpf = svec2_dot(svec2(-k.x, k.y), p);
+    tmpf = 2.0*sdf_min(tmpf, 0.0);
+    tmp = svec2(-k.x, k.y);
+    tmp = svec2_multiply_f(tmp, tmpf);
+    p = svec2_subtract(p, tmp);
+
+
+    /* p -= vec2(clamp(p.x,-r*k.z,r*k.z),r); */
+
+    tmp = svec2(clampf(p.x, -r*k.z, r*k.z), r);
+    p = svec2_subtract(p, tmp);
+
+    /* return length(p)*sign(p.y); */
+
+    return svec2_length(p) * sdf_sign(p.y);
+}
