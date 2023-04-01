@@ -289,3 +289,45 @@ float sdf_hexagram(struct vec2 p, float r)
 
     return svec2_length(p) - sdf_sign(p.y);
 }
+
+float sdf_star5(struct vec2 p, float r, float rf)
+{
+    const struct vec2 k1 = svec2(0.809016994375, -0.587785252292);
+    const struct vec2 k2 = svec2(-k1.x,k1.y);
+    float tmpf;
+    struct vec2 tmp;
+    struct vec2 ba;
+    float h;
+
+    p.x = fabs(p.x);
+
+    /* p -= 2.0*max(dot(k1,p),0.0)*k1; */
+
+    tmpf = svec2_dot(k1, p);
+    tmpf = 2.0 * sdf_max(tmpf, 0.0);
+    tmp = svec2_multiply_f(k1, tmpf);
+    p = svec2_subtract(p, tmp);
+
+    /* p -= 2.0*max(dot(k2,p),0.0)*k2; */
+    tmpf = svec2_dot(k2, p);
+    tmpf = 2.0 * sdf_max(tmpf, 0.0);
+    tmp = svec2_multiply_f(k2, tmpf);
+    p = svec2_subtract(p, tmp);
+
+    p.x = fabs(p.x);
+    p.y -= r;
+
+    /* vec2 ba = rf*vec2(-k1.y,k1.x) - vec2(0,1); */
+    ba = svec2_multiply_f(svec2(-k1.y, k1.x), rf);
+    ba = svec2_subtract(ba, svec2(0, 1));
+
+    /* float h = clamp( dot(p,ba)/dot(ba,ba), 0.0, r ); */
+    tmpf = svec2_dot(p, ba);
+    tmpf = tmpf / svec2_dot(ba, ba);
+    h = clampf(tmpf, 0.0, r);
+
+    /* return length(p-ba*h) * sign(p.y*ba.x-p.x*ba.y); */
+    tmp = svec2_multiply_f(ba, h);
+    tmp = svec2_subtract(p, tmp);
+    return svec2_length(tmp) * sdf_sign(p.y*ba.x-p.x*ba.y);
+}

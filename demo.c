@@ -415,11 +415,11 @@ void rhombus(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rhombus, &rh);
 }
 
-struct tiangle_equilateral_data {
+struct triangle_equilateral_data {
     struct vec3 clr;
 };
 
-static void d_tiangle_equilateral(struct vec3 *fragColor,
+static void d_triangle_equilateral(struct vec3 *fragColor,
                   struct vec2 st,
                   image_data *id)
 {
@@ -428,10 +428,10 @@ static void d_tiangle_equilateral(struct vec3 *fragColor,
     struct vec3 col;
     float alpha;
     struct vec2 res;
-    struct tiangle_equilateral_data *rh;
+    struct triangle_equilateral_data *rh;
 
     res = svec2(id->region->z, id->region->w);
-    rh = (struct tiangle_equilateral_data *)id->ud;
+    rh = (struct triangle_equilateral_data *)id->ud;
 
     p = sdf_normalize(svec2(st.x, st.y), res);
     /* horizontal flip */
@@ -444,11 +444,11 @@ static void d_tiangle_equilateral(struct vec3 *fragColor,
     *fragColor = col;
 }
 
-void tiangle_equilateral(struct canvas *ctx,
+void triangle_equilateral(struct canvas *ctx,
          float cx, float cy, float r,
          struct vec3 clr)
 {
-    struct tiangle_equilateral_data tri;
+    struct triangle_equilateral_data tri;
     float x, y, w, h;
     float rad;
 
@@ -464,7 +464,7 @@ void tiangle_equilateral(struct canvas *ctx,
     y = cy - r;
 
     tri.clr = clr;
-    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_tiangle_equilateral, &tri);
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_triangle_equilateral, &tri);
 }
 
 static void d_pentagon(struct vec3 *fragColor,
@@ -606,6 +606,53 @@ void hexagram(struct canvas *ctx,
     h = w;
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_hexagram, &clr);
 }
+struct star5_data {
+    struct vec3 clr;
+    float rf;
+};
+
+static void d_star5(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct star5_data *star;
+
+    res = svec2(id->region->z, id->region->w);
+    star = (struct star5_data *)id->ud;
+
+    /* flip so the start is pointing upwards */
+    st.y = res.y - st.y;
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_star5(p, 0.9, star->rf);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, star->clr, alpha);
+    *fragColor = col;
+}
+
+void star5(struct canvas *ctx,
+           float cx, float cy, float r, float rf,
+           struct vec3 clr)
+{
+    struct star5_data star;
+    float x, y, w, h;
+
+
+    w = 2.0 * r;
+    h = w;
+    x = cx - r;
+    y = cy - r;
+
+    star.clr = clr;
+    star.rf = rf;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_star5, &star);
+}
 
 int main(int argc, char *argv[])
 {
@@ -657,10 +704,10 @@ int main(int argc, char *argv[])
         0*sz + sz*0.5, 
         1*sz + sz*0.5, sz_scaled*0.5, pink);
 
-    tiangle_equilateral(&ctx, 
-                        1*sz + sz*0.5,
-                        1*sz + sz*0.5,
-                        sz_scaled * 0.7, pink);
+    triangle_equilateral(&ctx, 
+                         1*sz + sz*0.5,
+                         1*sz + sz*0.5,
+                         sz_scaled * 0.7, pink);
 
     pentagon(&ctx,
              2*sz + sz*0.5,
@@ -684,6 +731,13 @@ int main(int argc, char *argv[])
              1*sz + sz*0.5,
              2*sz + sz*0.5,
              sz_scaled*0.5,
+             pink);
+
+    star5(&ctx,
+             2*sz + sz*0.5,
+             2*sz + sz*0.5,
+             sz_scaled*0.5,
+             0.5,
              pink);
 
 #ifdef DRAW_GRIDLINES
