@@ -15,4 +15,5 @@ float sdf_equilateral_triangle(struct vec2 p);
 float sdf_pentagon(struct vec2 p, float r);
 float sdf_hexagon(struct vec2 p, float r);
 float sdf_octogon(struct vec2 p, float r);
+float sdf_hexagram(struct vec2 p, float r);
 #endif

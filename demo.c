@@ -538,8 +538,8 @@ void hexagon(struct canvas *ctx,
 }
 
 static void d_octogon(struct vec3 *fragColor,
-                       struct vec2 st,
-                       image_data *id)
+                      struct vec2 st,
+                      image_data *id)
 {
     struct vec2 p;
     float d;
@@ -561,6 +561,41 @@ static void d_octogon(struct vec3 *fragColor,
 }
 
 void octogon(struct canvas *ctx,
+             float cx, float cy, float r,
+             struct vec3 clr)
+{
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = r * 2;
+    h = w;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_octogon, &clr);
+}
+
+static void d_hexagram(struct vec3 *fragColor,
+                       struct vec2 st,
+                       image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    struct vec3 *fg;
+    float alpha;
+    struct vec2 res;
+
+    res = svec2(id->region->z, id->region->w);
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = sdf_hexagram(p, 0.5);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
+    *fragColor = col;
+}
+
+void hexagram(struct canvas *ctx,
               float cx, float cy, float r,
               struct vec3 clr)
 {
@@ -569,7 +604,7 @@ void octogon(struct canvas *ctx,
     y = cy - r;
     w = r * 2;
     h = w;
-    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_octogon, &clr);
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_hexagram, &clr);
 }
 
 int main(int argc, char *argv[])
@@ -644,6 +679,12 @@ int main(int argc, char *argv[])
             2*sz + sz*0.5,
             sz_scaled*0.5,
             pink);
+
+    hexagram(&ctx,
+             1*sz + sz*0.5,
+             2*sz + sz*0.5,
+             sz_scaled*0.5,
+             pink);
 
 #ifdef DRAW_GRIDLINES
     draw_gridlines(&ctx);
