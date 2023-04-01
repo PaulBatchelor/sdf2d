@@ -7,6 +7,9 @@
 
 #include "sdf.h"
 
+/* global feathering amount for hacky anti-aliasing */
+#define FEATHER_AMT 0.03
+
 typedef struct {
     struct vec2 iResolution;
     void *ud;
@@ -148,7 +151,7 @@ static void d_heart(struct vec3 *fragColor,
 
     d = -sdf_heart(p);
 
-    alpha = feather(d, 0.01);
+    alpha = feather(d, FEATHER_AMT);
 
     fg = (struct vec3 *)id->ud;
     col = svec3_lerp(*fragColor, *fg, alpha);
@@ -161,6 +164,41 @@ void heart(struct canvas *ctx,
            struct vec3 clr)
 {
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_heart, &clr);
+}
+
+static void d_circ(struct vec3 *fragColor,
+                   struct vec2 st,
+                   image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    struct vec3 *fg;
+    float alpha;
+    struct vec2 res;
+
+    res = svec2(id->region->z, id->region->w);
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_circle(p, 0.9);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    fg = (struct vec3 *)id->ud;
+    col = svec3_lerp(*fragColor, *fg, alpha);
+    *fragColor = col;
+}
+
+void circle(struct canvas *ctx,
+            float cx, float cy, float r,
+            struct vec3 clr)
+{
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = r * 2;
+    h = w;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_circ, &clr);
 }
 
 struct vec3 rgb2color(int r, int g, int b)
@@ -226,9 +264,14 @@ int main(int argc, char *argv[])
     int width, height;
     struct vec2 res;
     struct canvas ctx;
+    int sz;
+    struct vec3 pink;
 
-    width = 640;
-    height = 480;
+    width = 512;
+    height = 512;
+
+    sz = width / 4;
+
 
     res = svec2(width, height);
 
@@ -237,8 +280,10 @@ int main(int argc, char *argv[])
     ctx.res = res;
     ctx.buf = buf;
 
+    pink = rgb2color(255, 192, 203);
     fill(&ctx, svec3(1., 1.0, 1.0));
-    heart(&ctx, 0, 0, width, height, rgb2color(255, 192, 203));
+    heart(&ctx, 0, 0, sz, sz, pink);
+    circle(&ctx, 1*sz + sz*0.5, sz*0.5, (sz*0.5)*0.75, pink);
 
     write_ppm(buf, res, "demo.ppm");
 
