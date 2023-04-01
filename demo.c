@@ -429,7 +429,7 @@ void tiangle_equilateral(struct canvas *ctx,
     rad = (2 * M_PI) / 360.0;
 
     w = 2.0 * r * cos(30.0 * rad);
-    h = 2.0 * w * cos(60.0 * rad);
+    h = w * sin(60.0 * rad);
     x = cx - w*0.5;
     y = cy - r;
 
@@ -470,6 +470,35 @@ void pentagon(struct canvas *ctx,
     w = r * 2;
     h = w;
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_pentagon, &clr);
+}
+
+void draw_gridlines(struct canvas *ctx)
+{
+    int x, y;
+    int w, h;
+    int size;
+
+    w = ctx->res.x;
+    h = ctx->res.y;
+
+    size = w / 4;
+
+    for (y = 0; y < h; y += size) {
+        for (x = 0; x < w; x++) {
+            int pos;
+            pos = y*w + x;
+            ctx->buf[pos] = svec3_zero();
+        }
+    }
+
+    for (x = 0; x < w; x += size) {
+        for (y = 0; y < h; y++) {
+            int pos;
+            pos = y*w + x;
+            ctx->buf[pos] = svec3_zero();
+        }
+    }
+
 }
 
 int main(int argc, char *argv[])
@@ -523,7 +552,7 @@ int main(int argc, char *argv[])
         1*sz + sz*0.5, sz_scaled*0.5, pink);
 
     tiangle_equilateral(&ctx, 
-                        1*sz + sz*0.5, 
+                        1*sz + sz*0.5,
                         1*sz + sz*0.5,
                         sz_scaled * 0.7, pink);
 
@@ -532,6 +561,9 @@ int main(int argc, char *argv[])
             1*sz + sz*0.5,
             sz_scaled*0.5,
             pink);
+#ifdef DRAW_GRIDLINES
+    draw_gridlines(&ctx);
+#endif
 
     write_ppm(buf, res, "demo.ppm");
 
