@@ -10,4 +10,5 @@ float sdf_smoothstep(float e0, float e1, float x);
 struct vec2 sdf_normalize(struct vec2 pos, struct vec2 res);
 float sdf_rounded_box(struct vec2 pos, struct vec2 b, struct vec4 r);
 float sdf_box(struct vec2 p, struct vec2 b);
+float sdf_rhombus(struct vec2 p, struct vec2 b);
 #endif

@@ -287,6 +287,20 @@ static void d_rounded_box(struct vec3 *fragColor,
     *fragColor = col;
 }
 
+void rounded_box(struct canvas *ctx,
+                 float x, float y, float w, float h, float r,
+                 struct vec3 clr)
+{
+    struct rounded_box_data rb;
+    /* setting to be <1 yields better roundedness. probably
+     * has to do with truncation? 
+     */
+    rb.b = svec2(0.9, 0.9);
+    rb.clr = clr;
+    rb.r = svec4(r, r, r, r);
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rounded_box, &rb);
+}
+
 struct box_data {
     struct vec2 b;
     struct vec3 clr;
@@ -328,18 +342,47 @@ void box(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_box, &bb);
 }
 
-void rounded_box(struct canvas *ctx,
-                 float x, float y, float w, float h, float r,
-                 struct vec3 clr)
+struct rhombus_data {
+    struct vec2 b;
+    struct vec3 clr;
+};
+
+static void d_rhombus(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
 {
-    struct rounded_box_data rb;
-    /* setting to be <1 yields better roundedness. probably
-     * has to do with truncation? 
-     */
-    rb.b = svec2(0.9, 0.9);
-    rb.clr = clr;
-    rb.r = svec4(r, r, r, r);
-    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rounded_box, &rb);
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct rhombus_data *rh;
+
+    res = svec2(id->region->z, id->region->w);
+    rh = (struct rhombus_data *)id->ud;
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_rhombus(p, rh->b);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, rh->clr, alpha);
+    *fragColor = col;
+}
+
+void rhombus(struct canvas *ctx,
+         float cx, float cy, float r,
+         struct vec3 clr)
+{
+    struct rhombus_data rh;
+    float x, y, w, h;
+    x = cx - r;
+    y = cy - r;
+    w = 2 * r;
+    h = w;
+    rh.b = svec2(0.9, 0.9);
+    rh.clr = clr;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rhombus, &rh);
 }
 
 int main(int argc, char *argv[])
@@ -350,6 +393,8 @@ int main(int argc, char *argv[])
     struct canvas ctx;
     int sz;
     struct vec3 pink;
+    float cscale, padding;
+    int sz_scaled;
 
     /* TODO: rainbow colors:
      * Red: 255, 179, 186
@@ -363,6 +408,9 @@ int main(int argc, char *argv[])
     height = 512;
 
     sz = width / 4;
+    cscale = 0.75;
+    padding = (1 - cscale) * sz * 0.5;
+    sz_scaled = sz * cscale;
 
 
     res = svec2(width, height);
@@ -380,8 +428,12 @@ int main(int argc, char *argv[])
                 2*sz + sz*0.125, 
                 0 + sz * 0.125, sz*0.75, sz*0.75, 0.5, pink);
     box(&ctx, 
-        3*sz + sz*0.125, 
-        0 + sz * 0.125, sz*0.75, sz*0.75, pink);
+        3*sz + padding, 
+        0 + padding, sz*0.75, sz*0.75, pink);
+
+    rhombus(&ctx, 
+        0*sz + sz*0.5, 
+        1*sz + sz*0.5, sz_scaled*0.5, pink);
 
     write_ppm(buf, res, "demo.ppm");
 

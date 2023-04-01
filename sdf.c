@@ -127,3 +127,30 @@ float sdf_box(struct vec2 p, struct vec2 b)
     out += sdf_min(sdf_max(d.x, d.y), 0.0);
     return out;
 }
+
+static float ndot(struct vec2 a, struct vec2 b ) {
+    return a.x*b.x - a.y*b.y; 
+}
+
+float sdf_rhombus(struct vec2 p, struct vec2 b)
+{
+    float h;
+    float d;
+    struct vec2 tmp;
+    /* p = abs(p) */
+    p = svec2_abs(p);
+    /* h = clamp(ndot(b-2.0*p,b)/dot(b,b), -1.0, 1.0); */
+    tmp = svec2_multiply_f(p, 2.0);
+    tmp = svec2_subtract(b, tmp);
+    h = ndot(tmp, b) / svec2_dot(b, b);
+    h = clampf(h, -1.0, 1.0);
+    /* d = length( p-0.5*b*vec2(1.0-h,1.0+h) ); */
+    tmp = svec2_multiply_f(b, 0.5);
+    tmp = svec2_multiply(tmp, svec2(1.0-h, 1.0+h));
+    tmp = svec2_subtract(p, tmp);
+    d = svec2_length(tmp);
+
+    /* return d * sign( p.x*b.y + p.y*b.x - b.x*b.y );  */
+
+    return d * sdf_sign(p.x*b.y + p.y*b.x - b.x*b.y);
+}
