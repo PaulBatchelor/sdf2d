@@ -385,6 +385,58 @@ void rhombus(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rhombus, &rh);
 }
 
+struct tiangle_equilateral_data {
+    struct vec3 clr;
+};
+
+static void d_tiangle_equilateral(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct tiangle_equilateral_data *rh;
+
+    res = svec2(id->region->z, id->region->w);
+    rh = (struct tiangle_equilateral_data *)id->ud;
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    /* horizontal flip */
+    p.y = 1 - p.y;
+    d = -sdf_equilateral_triangle(p);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, rh->clr, alpha);
+    *fragColor = col;
+}
+
+void tiangle_equilateral(struct canvas *ctx,
+         float cx, float cy, float r,
+         struct vec3 clr)
+{
+    struct tiangle_equilateral_data tri;
+    float x, y, w, h;
+    float rad;
+
+    /* bust out some trig to convert 
+     * barycentric radial coordinates to rectangular bounds
+     */
+
+    rad = (2 * M_PI) / 360.0;
+
+    w = 2.0 * r * cos(30.0 * rad);
+    h = 2.0 * w * cos(60.0 * rad);
+    x = cx - w*0.5;
+    y = cy - r;
+
+    tri.clr = clr;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_tiangle_equilateral, &tri);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -434,6 +486,11 @@ int main(int argc, char *argv[])
     rhombus(&ctx, 
         0*sz + sz*0.5, 
         1*sz + sz*0.5, sz_scaled*0.5, pink);
+
+    tiangle_equilateral(&ctx, 
+                        1*sz + sz*0.5, 
+                        1*sz + sz*0.5,
+                        sz_scaled * 0.7, pink);
 
     write_ppm(buf, res, "demo.ppm");
 

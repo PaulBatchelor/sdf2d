@@ -154,3 +154,17 @@ float sdf_rhombus(struct vec2 p, struct vec2 b)
 
     return d * sdf_sign(p.x*b.y + p.y*b.x - b.x*b.y);
 }
+
+float sdf_equilateral_triangle(struct vec2 p)
+{
+    const float k = sqrt(3.0);
+    p.x = fabs(p.x) - 1.0;
+    p.y = p.y + 1.0/k;
+    if (p.x + k*p.y > 0.0) {
+        p = svec2_multiply_f(svec2(p.x - k*p.y, -k*p.x - p.y), 0.5);
+    }
+
+    p.x -= clampf(p.x, -2.0, 0.0);
+
+    return -svec2_length(p) * sdf_sign(p.y);
+}
