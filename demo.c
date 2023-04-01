@@ -201,6 +201,49 @@ void circle(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_circ, &clr);
 }
 
+struct rounded_box_data {
+    struct vec2 b;
+    struct vec4 r;
+    struct vec3 clr;
+};
+
+static void d_rounded_box(struct vec3 *fragColor,
+                          struct vec2 st,
+                          image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct rounded_box_data *rb;
+
+    res = svec2(id->region->z, id->region->w);
+    rb = (struct rounded_box_data *)id->ud;
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    d = -sdf_rounded_box(p, rb->b, rb->r);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, rb->clr, alpha);
+    *fragColor = col;
+}
+
+void rounded_box(struct canvas *ctx,
+                 float x, float y, float w, float h, float r,
+                 struct vec3 clr)
+{
+    struct rounded_box_data rb;
+    /* setting to be <1 yields better roundedness. probably
+     * has to do with truncation? 
+     */
+    rb.b = svec2(0.9, 0.9);
+    rb.clr = clr;
+    rb.r = svec4(r, r, r, r);
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_rounded_box, &rb);
+}
+
 struct vec3 rgb2color(int r, int g, int b)
 {
     float scale = 1.0 / 255;
@@ -267,6 +310,14 @@ int main(int argc, char *argv[])
     int sz;
     struct vec3 pink;
 
+    /* TODO: rainbow colors:
+     * Red: 255, 179, 186
+     * Orange: 255, 223, 186
+     * Yellow: 255, 255, 186
+     * Green: 186, 255, 201
+     * Blue: 186, 225, 255
+     */
+
     width = 512;
     height = 512;
 
@@ -284,6 +335,9 @@ int main(int argc, char *argv[])
     fill(&ctx, svec3(1., 1.0, 1.0));
     heart(&ctx, 0, 0, sz, sz, pink);
     circle(&ctx, 1*sz + sz*0.5, sz*0.5, (sz*0.5)*0.75, pink);
+    rounded_box(&ctx, 
+                2*sz + sz*0.125, 
+                0 + sz * 0.125, sz*0.75, sz*0.75, 0.5, pink);
 
     write_ppm(buf, res, "demo.ppm");
 
