@@ -773,6 +773,56 @@ void egg(struct canvas *ctx,
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_egg, &clr);
 }
 
+struct ellipse_data {
+    struct vec3 clr;
+    float a;
+    float b;
+};
+
+static void d_ellipse(struct vec3 *fragColor,
+                  struct vec2 st,
+                  image_data *id)
+{
+    struct vec2 p;
+    float d;
+    struct vec3 col;
+    float alpha;
+    struct vec2 res;
+    struct vec2 ab;
+    struct ellipse_data *el;
+
+    res = svec2(id->region->z, id->region->w);
+    el = (struct ellipse_data *)id->ud;
+
+    p = sdf_normalize(svec2(st.x, st.y), res);
+    ab = svec2(el->a, el->b);
+    d = -sdf_ellipse(p, ab);
+
+    alpha = feather(d, FEATHER_AMT);
+
+    col = svec3_lerp(*fragColor, el->clr, alpha);
+    *fragColor = col;
+}
+
+void ellipse(struct canvas *ctx,
+           float cx, float cy, float r, float a, float b,
+           struct vec3 clr)
+{
+    struct ellipse_data el;
+    float x, y, w, h;
+
+
+    w = 2.0 * r;
+    h = w;
+    x = cx - r;
+    y = cy - r;
+
+    el.clr = clr;
+    el.a = a;
+    el.b = b;
+    draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_ellipse, &el);
+}
+
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -903,6 +953,14 @@ int main(int argc, char *argv[])
         3*sz + sz*0.5,
         sz_scaled*0.5,
         rainbow[clrpos]);
+    clrpos = (clrpos + 1) % 5;
+
+    ellipse(&ctx,
+            2*sz + sz*0.5,
+            3*sz + sz*0.5,
+            sz_scaled*0.5,
+            0.9, 0.3,
+            rainbow[clrpos]);
     clrpos = (clrpos + 1) % 5;
 
 #ifdef DRAW_GRIDLINES

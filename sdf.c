@@ -390,3 +390,67 @@ float sdf_egg(struct vec2 p, float ra, float rb)
 
     return out - rb;
 }
+
+float sdf_ellipse(struct vec2 p, struct vec2 ab)
+{
+    float l;
+    float m, m2;
+    float n, n2;
+    float c, c3;
+    float q;
+    float d;
+    float g;
+    float co;
+    struct vec2 r;
+
+    p = svec2_abs(p);
+
+    if (p.x > p.y) {
+        p = svec2(p.y, p.x);
+        ab = svec2(ab.y, ab.x);
+    }
+
+    l = ab.y*ab.y - ab.x*ab.x;
+    m = ab.x*p.x / l;
+    m2 = m*m;
+    n = ab.y*p.y / l;
+    n2 = n*n;
+    c = (m2 + n2 - 1.0) / 3.0;
+    c3 = c*c*c;
+    q = c3 + m2*n2*2.0;
+    d = c3 + m2*n2;
+    g = m + m*n2;
+
+    if (d < 0.0) {
+        float h;
+        float s;
+        float t;
+        float rx;
+        float ry;
+
+        h = acos(q/c3)/3.0;
+        s = cos(h);
+        t = sin(h)*sqrt(3.0);
+        rx = sqrt(-c*(s + t + 2.0) + m2);
+        ry = sqrt(-c*(s - t + 2.0) + m2);
+        co = (ry + sdf_sign(l)*rx + fabs(g)/(rx*ry) - m)*0.5;
+    } else {
+        float h;
+        float s;
+        float u;
+        float rx;
+        float ry;
+        float rm;
+
+        h = 2.0*m*n*sqrt(d);
+        s = sdf_sign(q+h)*pow(fabs(q+h), 1.0/3.0);
+        u = sdf_sign(q-h)*pow(fabs(q-h), 1.0/3.0);
+        rx = -s - u - c*4.0 + 2.0*m2;
+        ry = (s - u)*sqrt(3.0);
+        rm = sqrt(rx*rx + ry*ry);
+        co = (ry/sqrt(rm - rx) + 2.0*g/rm - m)*0.5;
+    }
+
+    r = svec2_multiply(ab, svec2(co, sqrt(1.0-co*co)));
+    return svec2_length(svec2_subtract(r, p)) * sdf_sign(p.y - r.y);
+}
