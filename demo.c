@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #include "mathc/mathc.h"
 
 #include "sdf.h"
