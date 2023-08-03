@@ -227,27 +227,13 @@ void draw_gridlines(struct canvas *ctx)
 
 }
 
-static void d_polygon(struct vec3 *fragColor,
-                      struct vec2 st,
-                      thread_userdata *thud)
+static void draw_color(sdfvm *vm,
+                       struct vec2 p,
+                       struct vec3 *fragColor)
 {
-    struct vec2 p;
-    image_data *id;
-    struct vec3 col;
     struct vec2 points[4];
-    struct vec2 res;
-    sdfvm *vm;
     int i;
-
-    id = thud->data;
-    vm = &thud->th->vm;
-
-    res = svec2(id->region->z, id->region->w);
-    sdfvm_push_vec2(vm, svec2(st.x, st.y));
-    sdfvm_push_vec2(vm, res);
-    sdfvm_normalize(vm);
-    sdfvm_pop_vec2(vm, &p);
-    p.y = p.y*-1;
+    struct vec3 col;
 
     points[0] = svec2(-0.5, 0.5);
     points[1] = svec2(-0.1, -0.5);
@@ -278,7 +264,30 @@ static void d_polygon(struct vec3 *fragColor,
     sdfvm_lerp3(vm);
 
     sdfvm_pop_vec3(vm, &col);
+
     *fragColor = col;
+}
+
+static void d_polygon(struct vec3 *fragColor,
+                      struct vec2 st,
+                      thread_userdata *thud)
+{
+    struct vec2 p;
+    image_data *id;
+    struct vec2 res;
+    sdfvm *vm;
+
+    id = thud->data;
+    vm = &thud->th->vm;
+
+    res = svec2(id->region->z, id->region->w);
+    sdfvm_push_vec2(vm, svec2(st.x, st.y));
+    sdfvm_push_vec2(vm, res);
+    sdfvm_normalize(vm);
+    sdfvm_pop_vec2(vm, &p);
+    p.y = p.y*-1;
+
+    draw_color(vm, p, fragColor);
 }
 
 void polygon(struct canvas *ctx,
