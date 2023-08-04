@@ -11,10 +11,10 @@ libsdf2d.a: $(OBJ)
 	$(AR) rcs $@ $(OBJ)
 
 demo: demo.c libsdf2d.a
-	$(CC) $(CFLAGS) $< -o $@ -L. -lsdf2d
+	$(CC) $(CFLAGS) $< -o $@ -L. -lsdf2d -lm
 
 vmdemo: vmdemo.c libsdf2d.a
-	$(CC) $(CFLAGS) $< -o $@ -L. -lsdf2d
+	$(CC) $(CFLAGS) $< -o $@ -L. -lsdf2d -lm
 
 clean:
 	$(RM) $(OBJ)
