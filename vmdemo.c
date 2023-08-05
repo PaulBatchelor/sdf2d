@@ -29,6 +29,8 @@ struct canvas {
 
 typedef struct {
     sdfvm vm;
+    uint8_t *program;
+    size_t sz;
 } user_params;
 
 #define US_MAXTHREADS 8
@@ -229,12 +231,17 @@ void draw_gridlines(struct canvas *ctx)
 
 static void draw_color(sdfvm *vm,
                        struct vec2 p,
-                       struct vec3 *fragColor)
+                       struct vec3 *fragColor,
+                       uint8_t *program,
+                       size_t sz)
 {
-    struct vec2 points[4];
-    int i;
     struct vec3 col;
 
+    sdfvm_point_set(vm, p);
+    sdfvm_color_set(vm, *fragColor);
+    sdfvm_execute(vm, program, sz);
+
+#if 0
     points[0] = svec2(-0.5, 0.5);
     points[1] = svec2(-0.1, -0.5);
     points[2] = svec2(0.1, -0.5);
@@ -251,17 +258,17 @@ static void draw_color(sdfvm *vm,
     sdfvm_push_vec2(vm, p);
     sdfvm_push_scalar(vm, 0.7);
     sdfvm_circle(vm);
+
     sdfvm_push_scalar(vm, 0.1);
     sdfvm_lerp(vm);
 
     sdfvm_push_scalar(vm, -1.0);
     sdfvm_mul(vm);
-
     sdfvm_gtz(vm);
-
     sdfvm_push_vec3(vm, *fragColor);
     sdfvm_push_vec3(vm, svec3_zero());
     sdfvm_lerp3(vm);
+#endif
 
     sdfvm_pop_vec3(vm, &col);
 
@@ -276,9 +283,11 @@ static void d_polygon(struct vec3 *fragColor,
     image_data *id;
     struct vec2 res;
     sdfvm *vm;
+    user_params *params;
 
     id = thud->data;
     vm = &thud->th->vm;
+    params = id->ud;
 
     res = svec2(id->region->z, id->region->w);
     sdfvm_push_vec2(vm, svec2(st.x, st.y));
@@ -287,7 +296,7 @@ static void d_polygon(struct vec3 *fragColor,
     sdfvm_pop_vec2(vm, &p);
     p.y = p.y*-1;
 
-    draw_color(vm, p, fragColor);
+    draw_color(vm, p, fragColor, params->program, params->sz);
 }
 
 void polygon(struct canvas *ctx,
@@ -296,6 +305,71 @@ void polygon(struct canvas *ctx,
            user_params *p)
 {
     draw(ctx->buf, ctx->res, svec4(x, y, w, h), d_polygon, p);
+}
+
+static int add_float(uint8_t *prog, size_t *ppos, size_t maxsz, float val)
+{
+    uint8_t fdata[4];
+    float *fptr;
+    size_t pos;
+
+    pos = *ppos;
+    if ((pos + 4) > maxsz) return 1;
+
+    fptr = (float *)fdata;
+    *fptr = val;
+    prog[pos++] = fdata[0];
+    prog[pos++] = fdata[1];
+    prog[pos++] = fdata[2];
+    prog[pos++] = fdata[3];
+
+    *ppos = pos;
+
+    return 0;
+}
+
+void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
+{
+    size_t pos;
+    struct vec2 points[4];
+    int i;
+    pos = 0;
+
+    points[0] = svec2(-0.5, 0.5);
+    points[1] = svec2(-0.1, -0.5);
+    points[2] = svec2(0.1, -0.5);
+    points[3] = svec2(0.5, 0.5);
+
+    prog[pos++] = SDF_OP_POINT;
+    for (i = 0; i < 4; i++) {
+        prog[pos++] = SDF_OP_VEC2;
+        add_float(prog, &pos, maxsz, points[i].x);
+        add_float(prog, &pos, maxsz, points[i].y);
+    }
+    prog[pos++] = SDF_OP_POLY4;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.1);
+    prog[pos++] = SDF_OP_ROUNDNESS;
+    prog[pos++] = SDF_OP_POINT;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.7);
+    prog[pos++] = SDF_OP_CIRCLE;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.1);
+    prog[pos++] = SDF_OP_LERP;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, -1.0);
+    prog[pos++] = SDF_OP_MUL;
+    prog[pos++] = SDF_OP_GTZ;
+
+    prog[pos++] = SDF_OP_COLOR;
+    prog[pos++] = SDF_OP_VEC3;
+    add_float(prog, &pos, maxsz, 0.0);
+    add_float(prog, &pos, maxsz, 0.0);
+    add_float(prog, &pos, maxsz, 0.0);
+    prog[pos++] = SDF_OP_LERP3;
+
+    *sz = pos;
 }
 
 int main(int argc, char *argv[])
@@ -330,6 +404,9 @@ int main(int argc, char *argv[])
     ctx.buf = buf;
 
     sdfvm_init(&params.vm);
+    params.program = calloc(1, 128);
+    params.sz = 0;
+    generate_program(params.program, &params.sz, 128);
 
     fill(&ctx, svec3(1., 1.0, 1.0));
     polygon(&ctx, 0, 0, sz, sz, &params);
@@ -338,5 +415,6 @@ int main(int argc, char *argv[])
     write_ppm(buf, res, "vmdemo.ppm");
 
     free(buf);
+    free(params.program);
     return 0;
 }
