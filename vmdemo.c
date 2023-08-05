@@ -31,6 +31,7 @@ typedef struct {
     sdfvm vm;
     uint8_t *program;
     size_t sz;
+    sdfvm_stacklet registers[16];
 } user_params;
 
 #define US_MAXTHREADS 8
@@ -233,12 +234,15 @@ static void draw_color(sdfvm *vm,
                        struct vec2 p,
                        struct vec3 *fragColor,
                        uint8_t *program,
-                       size_t sz)
+                       size_t sz,
+                       sdfvm_stacklet *registers,
+                       int nregisters)
 {
     struct vec3 col;
 
     sdfvm_point_set(vm, p);
     sdfvm_color_set(vm, *fragColor);
+    sdfvm_registers(vm, registers, nregisters);
     sdfvm_execute(vm, program, sz);
 
 #if 0
@@ -296,7 +300,9 @@ static void d_polygon(struct vec3 *fragColor,
     sdfvm_pop_vec2(vm, &p);
     p.y = p.y*-1;
 
-    draw_color(vm, p, fragColor, params->program, params->sz);
+    draw_color(vm, p, fragColor,
+            params->program, params->sz,
+            params->registers, 16);
 }
 
 void polygon(struct canvas *ctx,
@@ -331,31 +337,37 @@ static int add_float(uint8_t *prog, size_t *ppos, size_t maxsz, float val)
 void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
 {
     size_t pos;
-    struct vec2 points[4];
     int i;
     pos = 0;
 
-    points[0] = svec2(-0.5, 0.5);
-    points[1] = svec2(-0.1, -0.5);
-    points[2] = svec2(0.1, -0.5);
-    points[3] = svec2(0.5, 0.5);
-
     prog[pos++] = SDF_OP_POINT;
     for (i = 0; i < 4; i++) {
-        prog[pos++] = SDF_OP_VEC2;
-        add_float(prog, &pos, maxsz, points[i].x);
-        add_float(prog, &pos, maxsz, points[i].y);
+        prog[pos++] = SDF_OP_SCALAR;
+        add_float(prog, &pos, maxsz, i);
+        prog[pos++] = SDF_OP_REGISTER;
     }
     prog[pos++] = SDF_OP_POLY4;
+   
+    /* r5: rounded edge amount */
     prog[pos++] = SDF_OP_SCALAR;
-    add_float(prog, &pos, maxsz, 0.1);
+    add_float(prog, &pos, maxsz, 5);
+    prog[pos++] = SDF_OP_REGISTER;
+
     prog[pos++] = SDF_OP_ROUNDNESS;
     prog[pos++] = SDF_OP_POINT;
+
+    /* r6: circle radius */
     prog[pos++] = SDF_OP_SCALAR;
-    add_float(prog, &pos, maxsz, 0.7);
+    add_float(prog, &pos, maxsz, 6);
+    prog[pos++] = SDF_OP_REGISTER;
+
     prog[pos++] = SDF_OP_CIRCLE;
+
+    /* r4: circleness amount */
     prog[pos++] = SDF_OP_SCALAR;
-    add_float(prog, &pos, maxsz, 0.1);
+    add_float(prog, &pos, maxsz, 4);
+    prog[pos++] = SDF_OP_REGISTER;
+
     prog[pos++] = SDF_OP_LERP;
     prog[pos++] = SDF_OP_SCALAR;
     add_float(prog, &pos, maxsz, -1.0);
@@ -370,6 +382,41 @@ void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
     prog[pos++] = SDF_OP_LERP3;
 
     *sz = pos;
+}
+
+void update_registers(sdfvm_stacklet *r)
+{
+    int i;
+    struct vec2 points[4];
+
+    /* initialize registers */
+    for (i = 0; i < 16; i++) {
+        r[i].type = SDFVM_SCALAR;
+        r[i].data.s = 0.0;
+    }
+
+    /* set 0-3 to be quad points */
+    points[0] = svec2(-0.5, 0.5);
+    points[1] = svec2(-0.1, -0.5);
+    points[2] = svec2(0.1, -0.5);
+    points[3] = svec2(0.5, 0.5);
+
+    for (i = 0; i <= 3; i++) {
+        r[i].type = SDFVM_VEC2;
+        r[i].data.v2 = points[i];
+    }
+
+    /* register 4: "circleness" */
+    r[4].type = SDFVM_SCALAR;
+    r[4].data.s = 0.1;
+
+    /* register 5: "roundedge" */
+    r[5].type = SDFVM_SCALAR;
+    r[5].data.s = 0.1;
+
+    /* register 6: "circrad" */
+    r[6].type = SDFVM_SCALAR;
+    r[6].data.s = 0.7;
 }
 
 int main(int argc, char *argv[])
@@ -407,6 +454,7 @@ int main(int argc, char *argv[])
     params.program = calloc(1, 128);
     params.sz = 0;
     generate_program(params.program, &params.sz, 128);
+    update_registers(params.registers);
 
     fill(&ctx, svec3(1., 1.0, 1.0));
     polygon(&ctx, 0, 0, sz, sz, &params);
