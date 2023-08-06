@@ -540,3 +540,27 @@ int sdfvm_register(sdfvm *vm)
 
     return 0;
 }
+
+void sdfvm_print_lookup_table(FILE *fp)
+{
+    if (fp == NULL) fp = stdout;
+    fprintf(fp, "{\n");
+    fprintf(fp, "    \"none\": %d,\n", SDF_OP_NONE);
+    fprintf(fp, "    \"point\": %d,\n", SDF_OP_POINT);
+    fprintf(fp, "    \"color\": %d,\n", SDF_OP_COLOR);
+    fprintf(fp, "    \"scalar\": %d,\n", SDF_OP_SCALAR);
+    fprintf(fp, "    \"vec2\": %d,\n", SDF_OP_VEC2);
+    fprintf(fp, "    \"vec3\": %d,\n", SDF_OP_VEC3);
+    fprintf(fp, "    \"register\": %d,\n", SDF_OP_REGISTER);
+    fprintf(fp, "    \"circle\": %d,\n", SDF_OP_CIRCLE);
+    fprintf(fp, "    \"poly4\": %d,\n", SDF_OP_POLY4);
+    fprintf(fp, "    \"roundness\": %d,\n", SDF_OP_ROUNDNESS);
+    fprintf(fp, "    \"feather\": %d,\n", SDF_OP_FEATHER);
+    fprintf(fp, "    \"lerp3\": %d,\n", SDF_OP_LERP3);
+    fprintf(fp, "    \"mul\": %d,\n", SDF_OP_MUL);
+    fprintf(fp, "    \"lerp\": %d,\n", SDF_OP_LERP);
+    fprintf(fp, "    \"gtz\": %d,\n", SDF_OP_GTZ);
+    fprintf(fp, "    \"normalize\": %d,\n", SDF_OP_NORMALIZE);
+    fprintf(fp, "    \"end\": %d\n", SDF_OP_END);
+    fprintf(fp, "}\n");
+}

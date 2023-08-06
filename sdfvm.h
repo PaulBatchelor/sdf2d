@@ -88,4 +88,5 @@ int sdfvm_execute(sdfvm *vm,
                   const uint8_t *program,
                   size_t sz);
 
+void sdfvm_print_lookup_table(FILE *fp);
 #endif

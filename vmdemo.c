@@ -462,6 +462,8 @@ int main(int argc, char *argv[])
 
     write_ppm(buf, res, "vmdemo.ppm");
 
+    sdfvm_print_lookup_table(NULL);
+
     free(buf);
     free(params.program);
     return 0;
