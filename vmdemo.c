@@ -373,6 +373,20 @@ void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
 
     prog[pos++] = SDF_OP_LERP;
 
+    prog[pos++] = SDF_OP_POINT;
+    prog[pos++] = SDF_OP_VEC2;
+    add_float(prog, &pos, maxsz, 0.0);
+    add_float(prog, &pos, maxsz, -0.6);
+    prog[pos++] = SDF_OP_ADD2;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.3);
+    prog[pos++] = SDF_OP_CIRCLE;
+
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.1);
+
+    prog[pos++] = SDF_OP_UNION_SMOOTH;
+
 
     prog[pos++] = SDF_OP_SCALAR;
     add_float(prog, &pos, maxsz, 0.01);

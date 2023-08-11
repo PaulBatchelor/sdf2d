@@ -380,6 +380,25 @@ int sdfvm_union(sdfvm *vm)
     return 0;
 }
 
+int sdfvm_union_smooth(sdfvm *vm)
+{
+    int rc;
+    float d1, d2, k, out;
+
+    rc = sdfvm_pop_scalar(vm, &k);
+    if (rc) return rc;
+    rc = sdfvm_pop_scalar(vm, &d2);
+    if (rc) return rc;
+    rc = sdfvm_pop_scalar(vm, &d1);
+    if (rc) return rc;
+
+    out = sdf_union_smooth(d1, d2, k);
+    rc = sdfvm_push_scalar(vm, out);
+    if (rc) return rc;
+
+    return 0;
+}
+
 static int get_float(const uint8_t *program,
                      size_t sz,
                      size_t *n,
@@ -529,6 +548,11 @@ int sdfvm_execute(sdfvm *vm,
                 rc = sdfvm_union(vm);
                 if (rc) return rc;
                 break;
+            case SDF_OP_UNION_SMOOTH:
+                n++;
+                rc = sdfvm_union_smooth(vm);
+                if (rc) return rc;
+                break;
             default:
                 return 1;
         }
@@ -651,6 +675,7 @@ void sdfvm_print_lookup_table(FILE *fp)
     fprintf(fp, "    \"normalize\": %d,\n", SDF_OP_NORMALIZE);
     fprintf(fp, "    \"onion\": %d,\n", SDF_OP_ONION);
     fprintf(fp, "    \"union\": %d,\n", SDF_OP_UNION);
+    fprintf(fp, "    \"union_smooth\": %d,\n", SDF_OP_UNION_SMOOTH);
     fprintf(fp, "    \"end\": %d\n", SDF_OP_END);
     fprintf(fp, "}\n");
 }
