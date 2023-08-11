@@ -320,7 +320,10 @@ static int add_float(uint8_t *prog, size_t *ppos, size_t maxsz, float val)
     size_t pos;
 
     pos = *ppos;
-    if ((pos + 4) > maxsz) return 1;
+    if ((pos + 4) > maxsz) {
+        fprintf(stderr, "Warning: out of memory\n");
+        return 1;
+    }
 
     fptr = (float *)fdata;
     *fptr = val;
@@ -375,13 +378,31 @@ void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
     add_float(prog, &pos, maxsz, 0.01);
     prog[pos++] = SDF_OP_ONION;
 
+    prog[pos++] = SDF_OP_POINT;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.1);
+    prog[pos++] = SDF_OP_CIRCLE;
+
+    prog[pos++] = SDF_OP_POINT;
+    prog[pos++] = SDF_OP_VEC2;
+    add_float(prog, &pos, maxsz, 0.0);
+    add_float(prog, &pos, maxsz, 0.13);
+    prog[pos++] = SDF_OP_ADD2;
+
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.12);
+    prog[pos++] = SDF_OP_CIRCLE;
+
+    prog[pos++] = SDF_OP_UNION;
+
+
+    prog[pos++] = SDF_OP_ADD;
 
     prog[pos++] = SDF_OP_SCALAR;
     add_float(prog, &pos, maxsz, -1.0);
     prog[pos++] = SDF_OP_MUL;
 
     prog[pos++] = SDF_OP_GTZ;
-
 
     prog[pos++] = SDF_OP_COLOR;
     prog[pos++] = SDF_OP_VEC3;

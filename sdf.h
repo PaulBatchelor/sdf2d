@@ -24,4 +24,5 @@ float sdf_ellipse(struct vec2 p, struct vec2 ab);
 float sdf_moon(struct vec2 p, float d, float ra, float rb);
 float sdf_polygon(struct vec2 *v, int N, struct vec2 p);
 float sdf_onion(float d, float r);
+float sdf_union(float d1, float d2);
 #endif

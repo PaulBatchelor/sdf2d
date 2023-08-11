@@ -536,3 +536,8 @@ float sdf_onion(float d, float r)
 {
     return fabs(d) - r;
 }
+
+float sdf_union(float d1, float d2)
+{
+    return sdf_min(d1, d2);
+}
