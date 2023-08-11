@@ -229,7 +229,7 @@ void draw_gridlines(struct canvas *ctx)
     }
 
 }
-
+int error = 0;
 static void draw_color(sdfvm *vm,
                        struct vec2 p,
                        struct vec3 *fragColor,
@@ -239,11 +239,19 @@ static void draw_color(sdfvm *vm,
                        int nregisters)
 {
     struct vec3 col;
+    int rc;
+
+    if (error) return;
 
     sdfvm_point_set(vm, p);
     sdfvm_color_set(vm, *fragColor);
     sdfvm_registers(vm, registers, nregisters);
-    sdfvm_execute(vm, program, sz);
+    rc = sdfvm_execute(vm, program, sz);
+
+    if (rc) {
+        printf("error\n");
+        error = 1;
+    }
 
 #if 0
     points[0] = svec2(-0.5, 0.5);
@@ -397,6 +405,7 @@ void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
     add_float(prog, &pos, maxsz, 0.1);
     prog[pos++] = SDF_OP_CIRCLE;
 
+
     prog[pos++] = SDF_OP_POINT;
     prog[pos++] = SDF_OP_VEC2;
     add_float(prog, &pos, maxsz, 0.0);
@@ -406,9 +415,14 @@ void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
     prog[pos++] = SDF_OP_SCALAR;
     add_float(prog, &pos, maxsz, 0.12);
     prog[pos++] = SDF_OP_CIRCLE;
-
     prog[pos++] = SDF_OP_UNION;
 
+    prog[pos++] = SDF_OP_POINT;
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.05);
+    prog[pos++] = SDF_OP_CIRCLE;
+    prog[pos++] = SDF_OP_SWAP;
+    prog[pos++] = SDF_OP_SUBTRACT;
 
     prog[pos++] = SDF_OP_ADD;
 
@@ -463,6 +477,7 @@ void update_registers(sdfvm_stacklet *r)
     r[6].data.s = 0.7;
 }
 
+#define PROGSZ 256
 int main(int argc, char *argv[])
 {
     struct vec3 *buf;
@@ -495,9 +510,9 @@ int main(int argc, char *argv[])
     ctx.buf = buf;
 
     sdfvm_init(&params.vm);
-    params.program = calloc(1, 128);
+    params.program = calloc(1, PROGSZ);
     params.sz = 0;
-    generate_program(params.program, &params.sz, 128);
+    generate_program(params.program, &params.sz, PROGSZ);
     update_registers(params.registers);
 
     fill(&ctx, svec3(1., 1.0, 1.0));

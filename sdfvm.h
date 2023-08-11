@@ -33,6 +33,7 @@ struct sdfvm {
 
 enum {
     SDF_OP_NONE,
+    SDF_OP_SWAP,
     SDF_OP_POINT,
     SDF_OP_COLOR,
     SDF_OP_SCALAR,
@@ -53,6 +54,7 @@ enum {
     SDF_OP_ONION,
     SDF_OP_UNION,
     SDF_OP_UNION_SMOOTH,
+    SDF_OP_SUBTRACT,
     SDF_OP_END
 };
 #endif
@@ -70,6 +72,7 @@ struct vec3 sdfvm_color_get(sdfvm *vm);
 int sdfvm_pop_scalar(sdfvm *vm, float *s);
 int sdfvm_pop_vec2(sdfvm *vm, struct vec2 *v);
 int sdfvm_pop_vec3(sdfvm *vm, struct vec3 *v);
+int sdfvm_swap(sdfvm *vm);
 
 void sdfvm_registers(sdfvm *vm, sdfvm_stacklet *reg, int nreg);
 int sdfvm_regset(sdfvm *vm, int pos, sdfvm_stacklet reg);

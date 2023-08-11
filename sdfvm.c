@@ -127,6 +127,18 @@ int sdfvm_pop_vec3(sdfvm *vm, struct vec3 *v)
     return 0;
 }
 
+int sdfvm_swap(sdfvm *vm)
+{
+    sdfvm_stacklet a, b;
+    if (vm->stackpos < 2) return 1;
+    a = vm->stack[vm->stackpos - 1];
+    b = vm->stack[vm->stackpos - 2];
+
+    vm->stack[vm->stackpos - 1] = b;
+    vm->stack[vm->stackpos - 2] = a;
+    return 0;
+}
+
 int sdfvm_circle(sdfvm *vm) 
 {
     int rc;
@@ -399,6 +411,23 @@ int sdfvm_union_smooth(sdfvm *vm)
     return 0;
 }
 
+int sdfvm_subtract(sdfvm *vm)
+{
+    int rc;
+    float d1, d2, out;
+
+    rc = sdfvm_pop_scalar(vm, &d2);
+    if (rc) return rc;
+    rc = sdfvm_pop_scalar(vm, &d1);
+    if (rc) return rc;
+
+    out = sdf_subtract(d1, d2);
+    rc = sdfvm_push_scalar(vm, out);
+    if (rc) return rc;
+
+    return 0;
+}
+
 static int get_float(const uint8_t *program,
                      size_t sz,
                      size_t *n,
@@ -444,6 +473,11 @@ int sdfvm_execute(sdfvm *vm,
             case SDF_OP_POINT:
                 n++;
                 rc = sdfvm_push_vec2(vm, sdfvm_point_get(vm));
+                if (rc) return rc;
+                break;
+            case SDF_OP_SWAP:
+                n++;
+                rc = sdfvm_swap(vm);
                 if (rc) return rc;
                 break;
             case SDF_OP_REGISTER:
@@ -551,6 +585,11 @@ int sdfvm_execute(sdfvm *vm,
             case SDF_OP_UNION_SMOOTH:
                 n++;
                 rc = sdfvm_union_smooth(vm);
+                if (rc) return rc;
+                break;
+            case SDF_OP_SUBTRACT:
+                n++;
+                rc = sdfvm_subtract(vm);
                 if (rc) return rc;
                 break;
             default:
@@ -676,6 +715,7 @@ void sdfvm_print_lookup_table(FILE *fp)
     fprintf(fp, "    \"onion\": %d,\n", SDF_OP_ONION);
     fprintf(fp, "    \"union\": %d,\n", SDF_OP_UNION);
     fprintf(fp, "    \"union_smooth\": %d,\n", SDF_OP_UNION_SMOOTH);
+    fprintf(fp, "    \"subtract\": %d,\n", SDF_OP_SUBTRACT);
     fprintf(fp, "    \"end\": %d\n", SDF_OP_END);
     fprintf(fp, "}\n");
 }
