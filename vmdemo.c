@@ -369,10 +369,19 @@ void generate_program(uint8_t *prog, size_t *sz, size_t maxsz)
     prog[pos++] = SDF_OP_REGISTER;
 
     prog[pos++] = SDF_OP_LERP;
+
+
+    prog[pos++] = SDF_OP_SCALAR;
+    add_float(prog, &pos, maxsz, 0.01);
+    prog[pos++] = SDF_OP_ONION;
+
+
     prog[pos++] = SDF_OP_SCALAR;
     add_float(prog, &pos, maxsz, -1.0);
     prog[pos++] = SDF_OP_MUL;
+
     prog[pos++] = SDF_OP_GTZ;
+
 
     prog[pos++] = SDF_OP_COLOR;
     prog[pos++] = SDF_OP_VEC3;
@@ -462,7 +471,7 @@ int main(int argc, char *argv[])
 
     write_ppm(buf, res, "vmdemo.ppm");
 
-    sdfvm_print_lookup_table(NULL);
+    /* sdfvm_print_lookup_table(NULL); */
 
     free(buf);
     free(params.program);

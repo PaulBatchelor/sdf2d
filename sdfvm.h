@@ -48,6 +48,7 @@ enum {
     SDF_OP_LERP,
     SDF_OP_GTZ,
     SDF_OP_NORMALIZE,
+    SDF_OP_ONION,
     SDF_OP_END
 };
 #endif
@@ -83,6 +84,7 @@ int sdfvm_mul(sdfvm *vm);
 int sdfvm_lerp(sdfvm *vm);
 int sdfvm_gtz(sdfvm *vm);
 int sdfvm_normalize(sdfvm *vm);
+int sdfvm_onion(sdfvm *vm);
 
 int sdfvm_execute(sdfvm *vm,
                   const uint8_t *program,

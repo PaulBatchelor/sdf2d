@@ -531,3 +531,8 @@ float sdf_polygon(struct vec2 *v, int N, struct vec2 p)
 
     return s * sqrt(d);
 }
+
+float sdf_onion(float d, float r)
+{
+    return fabs(d) - r;
+}

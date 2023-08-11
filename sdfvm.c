@@ -313,6 +313,23 @@ int sdfvm_normalize(sdfvm *vm)
     return 0;
 }
 
+int sdfvm_onion(sdfvm *vm)
+{
+    int rc;
+    float r, d, out;
+
+    rc = sdfvm_pop_scalar(vm, &r);
+    if (rc) return rc;
+    rc = sdfvm_pop_scalar(vm, &d);
+    if (rc) return rc;
+
+    out = sdf_onion(d, r);
+    rc = sdfvm_push_scalar(vm, out);
+    if (rc) return rc;
+
+    return 0;
+}
+
 static int get_float(const uint8_t *program,
                      size_t sz,
                      size_t *n,
@@ -435,6 +452,11 @@ int sdfvm_execute(sdfvm *vm,
             case SDF_OP_GTZ:
                 n++;
                 rc = sdfvm_gtz(vm);
+                if (rc) return rc;
+                break;
+            case SDF_OP_ONION:
+                n++;
+                rc = sdfvm_onion(vm);
                 if (rc) return rc;
                 break;
             case SDF_OP_NORMALIZE:
