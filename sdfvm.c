@@ -626,48 +626,48 @@ void sdfvm_uniforms(sdfvm *vm, sdfvm_stacklet *reg, int nreg)
     vm->nuniforms = nreg;
 }
 
-int sdfvm_regget(sdfvm *vm, int pos, sdfvm_stacklet *out)
+int sdfvm_uniget(sdfvm *vm, int pos, sdfvm_stacklet *out)
 {
     if (pos < 0 || pos >= vm->nuniforms) return 1;
     *out = vm->uniforms[pos];
     return 0;
 }
 
-int sdfvm_regset(sdfvm *vm, int pos, sdfvm_stacklet reg)
+int sdfvm_uniset(sdfvm *vm, int pos, sdfvm_stacklet reg)
 {
     if (pos < 0 || pos >= vm->nuniforms) return 1;
     vm->uniforms[pos] = reg;
     return 0;
 }
 
-int sdfvm_regset_scalar(sdfvm *vm, int pos, float s)
+int sdfvm_uniset_scalar(sdfvm *vm, int pos, float s)
 {
     sdfvm_stacklet stk;
 
     stk.type = SDFVM_SCALAR;
     stk.data.s = s;
 
-    return sdfvm_regset(vm, pos, stk);
+    return sdfvm_uniset(vm, pos, stk);
 }
 
-int sdfvm_regset_vec2(sdfvm *vm, int pos, struct vec2 v)
+int sdfvm_uniset_vec2(sdfvm *vm, int pos, struct vec2 v)
 {
     sdfvm_stacklet stk;
 
     stk.type = SDFVM_VEC2;
     stk.data.v2 = v;
 
-    return sdfvm_regset(vm, pos, stk);
+    return sdfvm_uniset(vm, pos, stk);
 }
 
-int sdfvm_regset_vec3(sdfvm *vm, int pos, struct vec3 v)
+int sdfvm_uniset_vec3(sdfvm *vm, int pos, struct vec3 v)
 {
     sdfvm_stacklet stk;
 
     stk.type = SDFVM_VEC3;
     stk.data.v3 = v;
 
-    return sdfvm_regset(vm, pos, stk);
+    return sdfvm_uniset(vm, pos, stk);
 }
 
 int sdfvm_uniform(sdfvm *vm)
@@ -684,7 +684,7 @@ int sdfvm_uniform(sdfvm *vm)
 
     rc = get_stacklet(vm, &stk);
     if (rc) return rc;
-    rc = sdfvm_regget(vm, pos, stk);
+    rc = sdfvm_uniget(vm, pos, stk);
     if (rc) return rc;
 
     return 0;
