@@ -459,6 +459,151 @@ int sdfvm_ellipse(sdfvm *vm)
     return rc;
 }
 
+void sdfvm_point_set(sdfvm *vm, struct vec2 p)
+{
+    vm->p = p;
+}
+
+struct vec2 sdfvm_point_get(sdfvm *vm)
+{
+    return vm->p;
+}
+
+void sdfvm_color_set(sdfvm *vm, struct vec3 color)
+{
+    vm->color = color;
+}
+
+struct vec3 sdfvm_color_get(sdfvm *vm)
+{
+    return vm->color;
+}
+
+void sdfvm_uniforms(sdfvm *vm, sdfvm_stacklet *reg, int nreg)
+{
+    vm->uniforms = reg;
+    vm->nuniforms = nreg;
+}
+
+int sdfvm_uniget(sdfvm *vm, int pos, sdfvm_stacklet *out)
+{
+    if (pos < 0 || pos >= vm->nuniforms) return 1;
+    *out = vm->uniforms[pos];
+    return 0;
+}
+
+int sdfvm_uniset(sdfvm *vm, int pos, sdfvm_stacklet reg)
+{
+    if (pos < 0 || pos >= vm->nuniforms) return 1;
+    vm->uniforms[pos] = reg;
+    return 0;
+}
+
+int sdfvm_uniset_scalar(sdfvm *vm, int pos, float s)
+{
+    sdfvm_stacklet stk;
+
+    stk.type = SDFVM_SCALAR;
+    stk.data.s = s;
+
+    return sdfvm_uniset(vm, pos, stk);
+}
+
+int sdfvm_uniset_vec2(sdfvm *vm, int pos, struct vec2 v)
+{
+    sdfvm_stacklet stk;
+
+    stk.type = SDFVM_VEC2;
+    stk.data.v2 = v;
+
+    return sdfvm_uniset(vm, pos, stk);
+}
+
+int sdfvm_uniset_vec3(sdfvm *vm, int pos, struct vec3 v)
+{
+    sdfvm_stacklet stk;
+
+    stk.type = SDFVM_VEC3;
+    stk.data.v3 = v;
+
+    return sdfvm_uniset(vm, pos, stk);
+}
+
+int sdfvm_uniform(sdfvm *vm)
+{
+    float fpos;
+    int pos;
+    sdfvm_stacklet *stk;
+    int rc;
+
+    pos = fpos = 0;
+    rc = sdfvm_pop_scalar(vm, &fpos);
+    if (rc) return rc;
+    pos = (int)fpos;
+
+    rc = get_stacklet(vm, &stk);
+    if (rc) return rc;
+    rc = sdfvm_uniget(vm, pos, stk);
+    if (rc) return rc;
+
+    return 0;
+}
+
+int sdfvm_register_get(sdfvm *vm, int pos, sdfvm_stacklet *out)
+{
+    if (pos < 0 || pos >= SDFVM_NREGISTERS) return 1;
+    *out = vm->registers[pos];
+    return 0;
+}
+
+int sdfvm_regget(sdfvm *vm)
+{
+    float fpos;
+    int pos;
+    sdfvm_stacklet *stk;
+    int rc;
+
+    pos = fpos = 0;
+    rc = sdfvm_pop_scalar(vm, &fpos);
+    if (rc) return rc;
+    pos = (int)fpos;
+
+    rc = get_stacklet(vm, &stk);
+    if (rc) return rc;
+    rc = sdfvm_register_get(vm, pos, stk);
+    if (rc) return rc;
+
+    return 0;
+}
+
+int sdfvm_register_set(sdfvm *vm, int pos, sdfvm_stacklet val)
+{
+    if (pos < 0 || pos >= SDFVM_NREGISTERS) return 1;
+    vm->registers[pos] = val;
+    return 0;
+}
+
+int sdfvm_regset(sdfvm *vm)
+{
+    float fpos;
+    int pos;
+    sdfvm_stacklet *stk;
+    int rc;
+
+    pos = fpos = 0;
+    rc = sdfvm_pop_scalar(vm, &fpos);
+    if (rc) return rc;
+    pos = (int)fpos;
+    if (vm->stackpos <= 0) return 1;
+    stk = &vm->stack[vm->stackpos - 1];
+    vm->stackpos--;
+
+    rc = sdfvm_register_set(vm, pos, *stk);
+    if (rc) return rc;
+
+    return 0;
+}
+
 static int get_float(const uint8_t *program,
                      size_t sz,
                      size_t *n,
@@ -646,150 +791,6 @@ int sdfvm_execute(sdfvm *vm,
     return 0;
 }
 
-void sdfvm_point_set(sdfvm *vm, struct vec2 p)
-{
-    vm->p = p;
-}
-
-struct vec2 sdfvm_point_get(sdfvm *vm)
-{
-    return vm->p;
-}
-
-void sdfvm_color_set(sdfvm *vm, struct vec3 color)
-{
-    vm->color = color;
-}
-
-struct vec3 sdfvm_color_get(sdfvm *vm)
-{
-    return vm->color;
-}
-
-void sdfvm_uniforms(sdfvm *vm, sdfvm_stacklet *reg, int nreg)
-{
-    vm->uniforms = reg;
-    vm->nuniforms = nreg;
-}
-
-int sdfvm_uniget(sdfvm *vm, int pos, sdfvm_stacklet *out)
-{
-    if (pos < 0 || pos >= vm->nuniforms) return 1;
-    *out = vm->uniforms[pos];
-    return 0;
-}
-
-int sdfvm_uniset(sdfvm *vm, int pos, sdfvm_stacklet reg)
-{
-    if (pos < 0 || pos >= vm->nuniforms) return 1;
-    vm->uniforms[pos] = reg;
-    return 0;
-}
-
-int sdfvm_uniset_scalar(sdfvm *vm, int pos, float s)
-{
-    sdfvm_stacklet stk;
-
-    stk.type = SDFVM_SCALAR;
-    stk.data.s = s;
-
-    return sdfvm_uniset(vm, pos, stk);
-}
-
-int sdfvm_uniset_vec2(sdfvm *vm, int pos, struct vec2 v)
-{
-    sdfvm_stacklet stk;
-
-    stk.type = SDFVM_VEC2;
-    stk.data.v2 = v;
-
-    return sdfvm_uniset(vm, pos, stk);
-}
-
-int sdfvm_uniset_vec3(sdfvm *vm, int pos, struct vec3 v)
-{
-    sdfvm_stacklet stk;
-
-    stk.type = SDFVM_VEC3;
-    stk.data.v3 = v;
-
-    return sdfvm_uniset(vm, pos, stk);
-}
-
-int sdfvm_uniform(sdfvm *vm)
-{
-    float fpos;
-    int pos;
-    sdfvm_stacklet *stk;
-    int rc;
-
-    pos = fpos = 0;
-    rc = sdfvm_pop_scalar(vm, &fpos);
-    if (rc) return rc;
-    pos = (int)fpos;
-
-    rc = get_stacklet(vm, &stk);
-    if (rc) return rc;
-    rc = sdfvm_uniget(vm, pos, stk);
-    if (rc) return rc;
-
-    return 0;
-}
-
-int sdfvm_register_get(sdfvm *vm, int pos, sdfvm_stacklet *out)
-{
-    if (pos < 0 || pos >= SDFVM_NREGISTERS) return 1;
-    *out = vm->registers[pos];
-    return 0;
-}
-
-int sdfvm_regget(sdfvm *vm)
-{
-    float fpos;
-    int pos;
-    sdfvm_stacklet *stk;
-    int rc;
-
-    pos = fpos = 0;
-    rc = sdfvm_pop_scalar(vm, &fpos);
-    if (rc) return rc;
-    pos = (int)fpos;
-
-    rc = get_stacklet(vm, &stk);
-    if (rc) return rc;
-    rc = sdfvm_register_get(vm, pos, stk);
-    if (rc) return rc;
-
-    return 0;
-}
-
-int sdfvm_register_set(sdfvm *vm, int pos, sdfvm_stacklet val)
-{
-    if (pos < 0 || pos >= SDFVM_NREGISTERS) return 1;
-    vm->registers[pos] = val;
-    return 0;
-}
-
-int sdfvm_regset(sdfvm *vm)
-{
-    float fpos;
-    int pos;
-    sdfvm_stacklet *stk;
-    int rc;
-
-    pos = fpos = 0;
-    rc = sdfvm_pop_scalar(vm, &fpos);
-    if (rc) return rc;
-    pos = (int)fpos;
-    if (vm->stackpos <= 0) return 1;
-    stk = &vm->stack[vm->stackpos - 1];
-    vm->stackpos--;
-
-    rc = sdfvm_register_set(vm, pos, *stk);
-    if (rc) return rc;
-
-    return 0;
-}
 void sdfvm_print_lookup_table(FILE *fp)
 {
     if (fp == NULL) fp = stdout;
@@ -819,6 +820,7 @@ void sdfvm_print_lookup_table(FILE *fp)
     fprintf(fp, "    \"swap\": %d,\n", SDF_OP_SWAP);
     fprintf(fp, "    \"regget\": %d,\n", SDF_OP_REGGET);
     fprintf(fp, "    \"regset\": %d,\n", SDF_OP_REGSET);
+    fprintf(fp, "    \"ellipse\": %d,\n", SDF_OP_ELLIPSE);
     fprintf(fp, "    \"end\": %d\n", SDF_OP_END);
     fprintf(fp, "}\n");
 }
