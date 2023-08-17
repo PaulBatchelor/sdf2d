@@ -439,6 +439,26 @@ int sdfvm_subtract(sdfvm *vm)
     return 0;
 }
 
+int sdfvm_ellipse(sdfvm *vm)
+{
+    int rc;
+    struct vec2 p, ab;
+    float d;
+
+    rc = 0;
+
+    rc = sdfvm_pop_vec2(vm, &ab);
+    if (rc) return rc;
+    rc = sdfvm_pop_vec2(vm, &p);
+    if (rc) return rc;
+
+    d = sdf_ellipse(p, ab);
+
+    rc = sdfvm_push_scalar(vm, d);
+
+    return rc;
+}
+
 static int get_float(const uint8_t *program,
                      size_t sz,
                      size_t *n,
@@ -611,6 +631,11 @@ int sdfvm_execute(sdfvm *vm,
             case SDF_OP_SUBTRACT:
                 n++;
                 rc = sdfvm_subtract(vm);
+                if (rc) return rc;
+                break;
+            case SDF_OP_ELLIPSE:
+                n++;
+                rc = sdfvm_ellipse(vm);
                 if (rc) return rc;
                 break;
             default:

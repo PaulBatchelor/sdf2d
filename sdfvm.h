@@ -59,6 +59,7 @@ enum {
     SDF_OP_UNION,
     SDF_OP_UNION_SMOOTH,
     SDF_OP_SUBTRACT,
+    SDF_OP_ELLIPSE,
     SDF_OP_END
 };
 #endif
@@ -103,6 +104,7 @@ int sdfvm_normalize(sdfvm *vm);
 int sdfvm_onion(sdfvm *vm);
 int sdfvm_union(sdfvm *vm);
 int sdfvm_union_smooth(sdfvm *vm);
+int sdfvm_ellipse(sdfvm *vm);
 
 int sdfvm_execute(sdfvm *vm,
                   const uint8_t *program,
