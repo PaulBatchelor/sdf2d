@@ -42,13 +42,15 @@ void sdfvm_init(sdfvm *vm)
     vm->color = svec3_zero();
     vm->uniforms = NULL;
     vm->nuniforms = 0;
+    vm->pos = 0;
+    vm->lastop = -1;
 }
 
 static int get_stacklet(sdfvm *vm, sdfvm_stacklet **sp)
 {
     sdfvm_stacklet *s;
 
-    if (vm->stackpos >= SDFVM_STACKSIZE) return 1;
+    if (vm->stackpos >= SDFVM_STACKSIZE) return SDFVM_STACK_OVERFLOW;
     s = &vm->stack[vm->stackpos];
 
     vm->stackpos++;
@@ -62,7 +64,7 @@ int sdfvm_push_scalar(sdfvm *vm, float s)
     int rc;
 
     rc = get_stacklet(vm, &stk);
-    if (rc) return rc;
+    if (rc) return SDFVM_STACK_OVERFLOW;
 
     stk->type = SDFVM_SCALAR;
     stk->data.s = s;
@@ -99,10 +101,10 @@ int sdfvm_pop_scalar(sdfvm *vm, float *s)
 {
     sdfvm_stacklet *stk;
 
-    if (vm->stackpos <= 0) return 1;
+    if (vm->stackpos <= 0) return SDFVM_STACK_UNDERFLOW;
     stk = &vm->stack[vm->stackpos - 1];
 
-    if (stk->type != SDFVM_SCALAR) return 2;
+    if (stk->type != SDFVM_SCALAR) return SDFVM_WRONG_TYPE;
 
     *s = stk->data.s;
     vm->stackpos--;
@@ -171,7 +173,7 @@ int sdfvm_circle(sdfvm *vm)
     return rc;
 }
 
-int sdfvm_poly4(sdfvm *vm) 
+int sdfvm_poly4(sdfvm *vm)
 {
     int rc;
     struct vec2 p;
@@ -196,7 +198,13 @@ int sdfvm_poly4(sdfvm *vm)
     return rc;
 }
 
-int sdfvm_roundness(sdfvm *vm) 
+static int print_stackpos(sdfvm *vm)
+{
+    printf("stackpos: %d\n", vm->stackpos);
+    return 0;
+}
+
+int sdfvm_roundness(sdfvm *vm)
 {
     float d, r;
     int rc;
@@ -280,6 +288,23 @@ int sdfvm_mul(sdfvm *vm)
     if (rc) return rc;
 
     rc = sdfvm_push_scalar(vm, x * y);
+    if (rc) return rc;
+
+    return 0;
+}
+
+int sdfvm_mul2(sdfvm *vm) 
+{
+    struct vec2 x, y, out;
+    int rc;
+
+    rc = sdfvm_pop_vec2(vm, &y);
+    if (rc) return rc;
+    rc = sdfvm_pop_vec2(vm, &x);
+    if (rc) return rc;
+
+    out = svec2_multiply(x, y);
+    rc = sdfvm_push_vec2(vm, out);
     if (rc) return rc;
 
     return 0;
@@ -487,7 +512,7 @@ void sdfvm_uniforms(sdfvm *vm, sdfvm_stacklet *reg, int nreg)
 
 int sdfvm_uniget(sdfvm *vm, int pos, sdfvm_stacklet *out)
 {
-    if (pos < 0 || pos >= vm->nuniforms) return 1;
+    if (pos < 0 || pos >= vm->nuniforms) return SDFVM_OUT_OF_BOUNDS;
     *out = vm->uniforms[pos];
     return 0;
 }
@@ -615,7 +640,7 @@ static int get_float(const uint8_t *program,
     int i;
 
     pos = *n;
-    if ((sz - pos) < 4) return 1;
+    if ((sz - pos) < 4) return SDFVM_OUT_OF_BOUNDS;
 
     for (i = 0; i < 4; i++) {
         tmp[i] = program[pos + i];
@@ -639,12 +664,16 @@ int sdfvm_execute(sdfvm *vm,
 
     n = 0;
     f[0] = f[1] = f[2] = 0;
+    vm->pos = 0;
+    vm->lastop = -1;
+
     while (n < sz) {
         uint8_t c;
         int rc;
 
         c = program[n];
-
+        vm->lastop = c;
+        vm->pos++;
         switch(c) {
             case SDF_OP_POINT:
                 n++;
@@ -733,6 +762,11 @@ int sdfvm_execute(sdfvm *vm,
                 rc = sdfvm_mul(vm);
                 if (rc) return rc;
                 break;
+            case SDF_OP_MUL2:
+                n++;
+                rc = sdfvm_mul2(vm);
+                if (rc) return rc;
+                break;
             case SDF_OP_ADD:
                 n++;
                 rc = sdfvm_add(vm);
@@ -783,13 +817,37 @@ int sdfvm_execute(sdfvm *vm,
                 rc = sdfvm_ellipse(vm);
                 if (rc) return rc;
                 break;
+            case SDF_OP_STACKPOS:
+                n++;
+                rc = print_stackpos(vm);
+                if (rc) return rc;
+                break;
             default:
-                return 1;
+                return SDFVM_UNKNOWN;
         }
     }
 
     return 0;
 }
+
+const char *sdfvm_errors[] = {
+    /* SDFVM_OK, */
+    "okay!",
+    /* SDFVM_NOT_OK, */
+    "not okay",
+    /* SDFVM_STACK_UNDERFLOW, */
+    "stack underflow",
+    /* SDFVM_STACK_OVERFLOW, */
+    "stack overflow",
+    /* SDFVM_WRONG_TYPE, */
+    "wrong type",
+    /* SDFVM_OUT_OF_BOUNDS, */
+    "wrong type",
+    /* SDFVM_UNKNOWN, */
+    "unknown opcode",
+    /* SDFVM_NOTHING */
+    "this error shouldn't happen",
+};
 
 void sdfvm_print_lookup_table(FILE *fp)
 {
@@ -808,6 +866,7 @@ void sdfvm_print_lookup_table(FILE *fp)
     fprintf(fp, "    \"feather\": %d,\n", SDF_OP_FEATHER);
     fprintf(fp, "    \"lerp3\": %d,\n", SDF_OP_LERP3);
     fprintf(fp, "    \"mul\": %d,\n", SDF_OP_MUL);
+    fprintf(fp, "    \"mul2\": %d,\n", SDF_OP_MUL2);
     fprintf(fp, "    \"add\": %d,\n", SDF_OP_ADD);
     fprintf(fp, "    \"add2\": %d,\n", SDF_OP_ADD2);
     fprintf(fp, "    \"lerp\": %d,\n", SDF_OP_LERP);
@@ -821,6 +880,7 @@ void sdfvm_print_lookup_table(FILE *fp)
     fprintf(fp, "    \"regget\": %d,\n", SDF_OP_REGGET);
     fprintf(fp, "    \"regset\": %d,\n", SDF_OP_REGSET);
     fprintf(fp, "    \"ellipse\": %d,\n", SDF_OP_ELLIPSE);
+    fprintf(fp, "    \"stackpos\": %d,\n", SDF_OP_STACKPOS);
     fprintf(fp, "    \"end\": %d\n", SDF_OP_END);
     fprintf(fp, "}\n");
 }
